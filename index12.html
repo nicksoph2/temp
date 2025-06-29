@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Harmonograph Control Panel</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Time Settings -->
+      <div class="section">
+        <button class="toggle">Time Settings</button>
+        <div class="content">
+          <div class="form-group">
+            <label>Start Time:</label>
+            <input type="number" id="startTime" min="0" />
+          </div>
+          <div class="form-group">
+            <label>End Time:</label>
+            <input type="number" id="endTime" min="0" />
+          </div>
+          <div class="form-group">
+            <label>Steps:</label>
+            <input type="number" id="steps" min="1" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Pendulums -->
+      <div class="section">
+        <button class="toggle">Pendulums</button>
+        <div class="content">
+          <table id="pendulumTable">
+            <thead>
+              <tr>
+                <th>Frequency</th>
+                <th>Amplitude</th>
+                <th>Phase</th>
+                <th>Damping</th>
+                <th>Remove</th>
+              </tr>
+            </thead>
+            <tbody id="pendulumContainer"></tbody>
+          </table>
+          <button class="add-btn" onclick="addPendulum()">Add Pendulum</button>
+        </div>
+      </div>
+
+      <!-- Color Settings -->
+      <div class="section">
+        <button class="toggle">Color Loops</button>
+        <div class="content">
+          <div id="colorContainer"></div>
+          <button class="add-btn" onclick="addEntry('colorContainer', 'Color')">
+            Add Color Keyframe
+          </button>
+        </div>
+      </div>
+
+      <!-- Width Settings -->
+      <div class="section">
+        <button class="toggle">Width Loops</button>
+        <div class="content">
+          <div id="widthContainer"></div>
+          <button class="add-btn" onclick="addEntry('widthContainer', 'Width')">
+            Add Width Keyframe
+          </button>
+        </div>
+      </div>
+
+      <!-- Transparency Settings -->
+      <div class="section">
+        <button class="toggle">Transparency Loops</button>
+        <div class="content">
+          <div id="transparencyContainer"></div>
+          <button
+            class="add-btn"
+            onclick="addEntry('transparencyContainer', 'Transparency')"
+          >
+            Add Transparency Keyframe
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

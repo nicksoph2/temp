@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Property Looping Interface</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        background-color: #f0f2f5;
+        color: #1c1e21;
+        display: flex;
+        padding: 20px;
+        gap: 20px;
+      }
+      .controls {
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 400px;
+        align-self: flex-start;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        font-size: 13px;
+      }
+      .visualizer {
+        flex-grow: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-content: flex-start;
+        padding: 10px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        min-height: 90vh;
+      }
+      .object-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: white;
+        text-shadow: 0 0 2px black;
+        box-sizing: border-box;
+        border: 1px solid #eee;
+        border-radius: 2px;
+      }
+      fieldset {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 8px 12px 12px 12px;
+      }
+      legend {
+        font-weight: bold;
+        padding: 0 5px;
+        color: #333;
+        font-size: 13px;
+      }
+      .main-control-group {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .input-pair {
+        display: grid;
+        /* Inside each pair, the label takes minimum space, and the input takes the rest. */
+        grid-template-columns: auto 1fr;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .control-point-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .control-point {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr 30px;
+        align-items: center;
+        gap: 6px;
+      }
+      .control-point .cp-index {
+        position: relative;
+      }
+      .control-point .cp-index::before {
+        content: "%";
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+        font-size: 10px;
+        pointer-events: none;
+      }
+      label {
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      input[type="number"],
+      input[type="text"] {
+        width: 90px;
+        padding: 2px 4px;
+        margin: 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 12px;
+        height: 28px;
+        text-align: right;
+      }
+      select {
+        padding: 2px 4px;
+        margin: 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 12px;
+        height: 28px;
+        background-color: white;
+      }
+      .prop-loop-length-display {
+        display: inline-block;
+        padding: 2px 4px;
+        background-color: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 12px;
+        height: 28px;
+        line-height: 24px;
+        color: #666;
+        min-width: 40px;
+        text-align: center;
+      }
+      input[type="color"] {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        height: 32px;
+        cursor: pointer;
+      }
+      button {
+        background-color: #0866ff;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        font-size: 14px;
+      }
+      button:hover {
+        background-color: #0655d4;
+      }
+      .add-btn {
+        background-color: #42b72a;
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+      .add-btn:hover {
+        background-color: #36a420;
+      }
+      .remove-btn {
+        background: none;
+        border: none;
+        color: #ff4d4d;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 20px;
+        padding: 0;
+        line-height: 1;
+        text-align: center;
+      }
+
+      fieldset.collapsible > .fieldset-content {
+        display: none;
+        padding-top: 8px;
+      }
+
+      fieldset.collapsible.open > .fieldset-content {
+        display: block;
+      }
+
+      fieldset.collapsible > legend {
+        cursor: pointer;
+        user-select: none;
+        background-color: #f0f0f0;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+
+      /* Pendulum-specific CSS */
+      .pendulum-list {
+        margin-top: 8px;
+      }
+
+      .pendulum-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+
+      .pendulum-table th {
+        background-color: #f0f0f0;
+        padding: 4px 2px;
+        border: 1px solid #ddd;
+        font-weight: bold;
+        font-size: 10px;
+        text-align: center;
+      }
+
+      .pendulum-table td {
+        padding: 2px;
+        border: 1px solid #ddd;
+        text-align: center;
+      }
+
+      .pendulum-table input[type="number"] {
+        width: 100%;
+        height: 22px;
+        font-size: 10px;
+        padding: 1px 2px;
+        border: none;
+        background: transparent;
+        text-align: center;
+      }
+
+      .pendulum-table input[type="checkbox"] {
+        margin: 0;
+        transform: scale(0.8);
+      }
+
+      .pendulum-table .remove-btn {
+        font-size: 14px;
+        padding: 0;
+        line-height: 1;
+        background: none;
+        border: none;
+        color: #ff4d4d;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="controls">
+      <div>
+        <button onclick="generate()">Generate Visualization</button>
+        <div
+          style="display: flex; gap: 8px; margin-top: 10px; margin-bottom: 10px"
+        >
+          <button onclick="saveSettings()">Save Settings</button>
+          <button onclick="loadSettings()">Load Settings</button>
+        </div>
+        <input
+          type="file"
+          id="fileInput"
+          accept=".json"
+          style="display: none"
+          onchange="handleFileLoad(event)"
+        />
+      </div>
+      <fieldset class="collapsible">
+        <legend>Time & Rendering</legend>
+        <div class="fieldset-content">
+          <div class="main-control-group">
+            <label for="pointCount">Points to Be Generated:</label>
+            <input
+              type="number"
+              id="pointCount"
+              value="1000"
+              min="10"
+              step="10"
+            />
+          </div>
+          <div class="main-control-group">
+            <label for="renderMode">Render Mode:</label>
+            <select id="renderMode" onchange="toggleRenderMode()">
+              <option value="line">Line</option>
+              <option value="object">Objects</option>
+            </select>
+          </div>
+          <div class="main-control-group">
+            <label for="timeStart">Time Start:</label>
+            <input type="number" id="timeStart" value="0" step="0.01" min="0" />
+          </div>
+          <div class="main-control-group">
+            <label for="timeEnd">Time End:</label>
+            <input
+              type="number"
+              id="timeEnd"
+              value="10"
+              step="0.01"
+              min="0.01"
+            />
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="collapsible">
+        <legend>Pendulums</legend>
+        <div class="fieldset-content">
+          <button class="add-btn" onclick="addPendulum()">Add Pendulum</button>
+          <div id="pendulum-list" class="pendulum-list">
+            <table
+              class="pendulum-table"
+              id="pendulum-table"
+              style="display: none"
+            >
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Freq<br />(Hz)</th>
+                  <th>Mag</th>
+                  <th>Phase<br />(°)</th>
+                  <th>Damp</th>
+                  <th>X</th>
+                  <th>Y</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="pendulum-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="collapsible">
+        <legend>Color</legend>
+        <div class="fieldset-content">
+          <div class="prop-control-group">
+            <div class="input-pair">
+              <label>Loops:</label>
+              <input
+                type="number"
+                class="prop-frequency"
+                value="1"
+                step="1"
+                min="1"
+              />
+            </div>
+            <div class="input-pair">
+              <label>Offset:</label>
+              <input type="number" class="prop-offset" value="0" />
+            </div>
+            <div class="input-pair">
+              <label>Loop Length:</label>
+              <span class="prop-loop-length-display">No Loop</span>
+            </div>
+          </div>
+          <button class="add-btn" onclick="addControlPoint('color', '#ff0000')">
+            Add Color Point
+          </button>
+          <div id="color-points" class="control-point-list"></div>
+        </div>
+      </fieldset>
+
+      <fieldset class="collapsible">
+        <legend>Line Width (px)</legend>
+        <div class="fieldset-content">
+          <div class="prop-control-group">
+            <div class="input-pair">
+              <label>Loops:</label>
+              <input
+                type="number"
+                class="prop-frequency"
+                value="1"
+                step="1"
+                min="1"
+              />
+            </div>
+            <div class="input-pair">
+              <label>Offset:</label>
+              <input type="number" class="prop-offset" value="10" />
+            </div>
+            <div class="input-pair">
+              <label>Loop Length:</label>
+              <span class="prop-loop-length-display">No Loop</span>
+            </div>
+          </div>
+          <button class="add-btn" onclick="addControlPoint('lineWidth', 1)">
+            Add Line Width Point
+          </button>
+          <div id="lineWidth-points" class="control-point-list"></div>
+        </div>
+      </fieldset>
+
+      <fieldset class="collapsible">
+        <legend>Object Width (px)</legend>
+        <div class="fieldset-content">
+          <div class="prop-control-group">
+            <div class="input-pair">
+              <label>Loops:</label>
+              <input
+                type="number"
+                class="prop-frequency"
+                value="1"
+                step="1"
+                min="1"
+              />
+            </div>
+            <div class="input-pair">
+              <label>Offset:</label>
+              <input type="number" class="prop-offset" value="10" />
+            </div>
+            <div class="input-pair">
+              <label>Loop Length:</label>
+              <span class="prop-loop-length-display">No Loop</span>
+            </div>
+          </div>
+          <button class="add-btn" onclick="addControlPoint('objectWidth', 5)">
+            Add Object Width Point
+          </button>
+          <div id="objectWidth-points" class="control-point-list"></div>
+        </div>
+      </fieldset>
+
+      <fieldset class="collapsible">
+        <legend>Height (px)</legend>
+        <div class="fieldset-content">
+          <div class="prop-control-group">
+            <div class="input-pair">
+              <label>Loops:</label>
+              <input
+                type="number"
+                class="prop-frequency"
+                value="1"
+                step="1"
+                min="1"
+              />
+            </div>
+            <div class="input-pair">
+              <label>Offset:</label>
+              <input type="number" class="prop-offset" value="0" />
+            </div>
+            <div class="input-pair">
+              <label>Loop Length:</label>
+              <span class="prop-loop-length-display">No Loop</span>
+            </div>
+          </div>
+          <button class="add-btn" onclick="addControlPoint('height', 50)">
+            Add Height Point
+          </button>
+          <div id="height-points" class="control-point-list"></div>
+        </div>
+      </fieldset>
+
+      <fieldset class="collapsible">
+        <legend>Opacity (0.0 to 1.0)</legend>
+        <div class="fieldset-content">
+          <div class="prop-control-group">
+            <div class="input-pair">
+              <label>Loops:</label>
+              <input
+                type="number"
+                class="prop-frequency"
+                value="1"
+                step="1"
+                min="1"
+              />
+            </div>
+            <div class="input-pair">
+              <label>Offset:</label>
+              <input type="number" class="prop-offset" value="0" />
+            </div>
+            <div class="input-pair">
+              <label>Loop Length:</label>
+              <span class="prop-loop-length-display">No Loop</span>
+            </div>
+          </div>
+          <button class="add-btn" onclick="addControlPoint('opacity', 1.0)">
+            Add Opacity Point
+          </button>
+          <div id="opacity-points" class="control-point-list"></div>
+        </div>
+      </fieldset>
+
+      <button onclick="generate()">Generate Visualization</button>
+    </div>
+
+    <div id="visualizer" class="visualizer"></div>
+
+    <script>
+      // --- UTILITY & INTERPOLATION FUNCTIONS (Unchanged) ---
+      const lerp = (start, end, amount) => start * (1 - amount) + end * amount;
+      const hexToRgb = (hex) => {
+        let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result
+          ? {
+              r: parseInt(result[1], 16),
+              g: parseInt(result[2], 16),
+              b: parseInt(result[3], 16),
+            }
+          : null;
+      };
+      const rgbToHex = (r, g, b) =>
+        "#" +
+        (
+          (1 << 24) +
+          (Math.round(r) << 16) +
+          (Math.round(g) << 8) +
+          Math.round(b)
+        )
+          .toString(16)
+          .slice(1)
+          .padStart(6, "0");
+      const lerpColor = (hex1, hex2, amount) => {
+        const c1 = hexToRgb(hex1);
+        const c2 = hexToRgb(hex2);
+        if (!c1 || !c2) return hex1;
+        return rgbToHex(
+          lerp(c1.r, c2.r, amount),
+          lerp(c1.g, c2.g, amount),
+          lerp(c1.b, c2.b, amount)
+        );
+      };
+
+      // --- PENDULUM MANAGEMENT ---
+      let pendulumIdCounter = 0;
+
+      function addPendulum() {
+        const table = document.getElementById("pendulum-table");
+        const tbody = document.getElementById("pendulum-tbody");
+        const id = pendulumIdCounter++;
+
+        // Show table if this is the first pendulum
+        if (tbody.children.length === 0) {
+          table.style.display = "table";
+        }
+
+        const row = document.createElement("tr");
+        row.className = "pendulum-control";
+        row.id = `pendulum-${id}`;
+
+        row.innerHTML = `
+          <td>P${id + 1}</td>
+          <td><input type="number" class="pendulum-frequency" value="1.0" step="0.1" min="0.1"></td>
+          <td><input type="number" class="pendulum-magnitude" value="100" step="1" min="1"></td>
+          <td><input type="number" class="pendulum-phase" value="0" step="1" min="0" max="360"></td>
+          <td><input type="number" class="pendulum-dampening" value="0.0" step="0.01" min="0" max="1"></td>
+          <td><input type="checkbox" class="pendulum-x-axis" checked></td>
+          <td><input type="checkbox" class="pendulum-y-axis" checked></td>
+          <td><button class="remove-btn" onclick="removePendulum(${id})">×</button></td>
+        `;
+
+        tbody.appendChild(row);
+      }
+
+      function removePendulum(id) {
+        const row = document.getElementById(`pendulum-${id}`);
+        const tbody = document.getElementById("pendulum-tbody");
+        const table = document.getElementById("pendulum-table");
+
+        row.remove();
+
+        // Hide table if no pendulums left
+        if (tbody.children.length === 0) {
+          table.style.display = "none";
+        }
+      }
+
+      function getPendulumData() {
+        const pendulums = [];
+        document.querySelectorAll(".pendulum-control").forEach((control) => {
+          const pendulum = {
+            frequency: parseFloat(
+              control.querySelector(".pendulum-frequency").value
+            ),
+            magnitude: parseFloat(
+              control.querySelector(".pendulum-magnitude").value
+            ),
+            phase:
+              (parseFloat(control.querySelector(".pendulum-phase").value) *
+                Math.PI) /
+              180, // Convert to radians
+            dampening: parseFloat(
+              control.querySelector(".pendulum-dampening").value
+            ),
+            xAxis: control.querySelector(".pendulum-x-axis").checked,
+            yAxis: control.querySelector(".pendulum-y-axis").checked,
+          };
+          pendulums.push(pendulum);
+        });
+        return pendulums;
+      }
+
+      function generateHarmonographPoints(
+        pendulums,
+        timeStart = 0,
+        timeEnd = 10,
+        numPoints = 1000
+      ) {
+        const points = [];
+        const timeStep = (timeEnd - timeStart) / (numPoints - 1);
+
+        for (let i = 0; i < numPoints; i++) {
+          const t = timeStart + i * timeStep;
+          let x = 0,
+            y = 0;
+
+          pendulums.forEach((pendulum) => {
+            const dampening = Math.exp(-pendulum.dampening * t);
+            const oscillation =
+              pendulum.magnitude *
+              dampening *
+              Math.sin(2 * Math.PI * pendulum.frequency * t + pendulum.phase);
+
+            if (pendulum.xAxis) x += oscillation;
+            if (pendulum.yAxis) y += oscillation;
+          });
+
+          points.push({ x, y, index: i });
+        }
+
+        return points;
+      }
+
+      function calculateLoopLength(frequency, totalPoints = 1000) {
+        if (frequency === 1) {
+          // When frequency is 1, use the entire point range (no looping)
+          return totalPoints;
+        } else {
+          // When frequency > 1, divide total points by frequency for loop length
+          return Math.round(totalPoints / frequency);
+        }
+      }
+
+      function updatePointCountDisplay() {
+        const timeStart =
+          parseFloat(document.getElementById("timeStart").value) || 0;
+        const timeEnd =
+          parseFloat(document.getElementById("timeEnd").value) || 10;
+        const timeStep = 0.01; // Same as in generateHarmonographPoints
+
+        if (timeEnd > timeStart) {
+          const pointCount = Math.round((timeEnd - timeStart) / timeStep);
+          document.getElementById("pointCount").textContent = pointCount;
+        } else {
+          document.getElementById("pointCount").textContent = "Invalid";
+        }
+      }
+
+      function updateLoopLengthDisplays() {
+        const totalPoints =
+          parseInt(document.getElementById("pointCount").value) || 1000;
+
+        document.querySelectorAll(".prop-control-group").forEach((group) => {
+          const frequencyInput = group.querySelector(".prop-frequency");
+          const display = group.querySelector(".prop-loop-length-display");
+          if (frequencyInput && display) {
+            const frequency = parseFloat(frequencyInput.value);
+            if (frequency === 1) {
+              display.textContent = "No Loop";
+            } else {
+              const loopLength = calculateLoopLength(frequency, totalPoints);
+              display.textContent = `${frequency}x (${loopLength} pts)`;
+            }
+          }
+        });
+      }
+
+      function toggleRenderMode() {
+        const mode = document.getElementById("renderMode").value;
+
+        // Find the correct sections by their legend text
+        const allFieldsets = document.querySelectorAll("fieldset");
+        let lineWidthFieldset, objectWidthFieldset, heightFieldset;
+
+        allFieldsets.forEach((fieldset) => {
+          const legend = fieldset.querySelector("legend").textContent;
+          if (legend === "Line Width (px)") lineWidthFieldset = fieldset;
+          if (legend === "Object Width (px)") objectWidthFieldset = fieldset;
+          if (legend === "Height (px)") heightFieldset = fieldset;
+        });
+
+        if (mode === "line") {
+          if (lineWidthFieldset) lineWidthFieldset.style.display = "block";
+          if (objectWidthFieldset) objectWidthFieldset.style.display = "none";
+          if (heightFieldset) heightFieldset.style.display = "none";
+        } else {
+          if (lineWidthFieldset) lineWidthFieldset.style.display = "none";
+          if (objectWidthFieldset) objectWidthFieldset.style.display = "block";
+          if (heightFieldset) heightFieldset.style.display = "block";
+        }
+      }
+
+      // --- UI & CONTROL POINT MANAGEMENT (Unchanged) ---
+      let controlPointIdCounter = 0;
+      function addControlPoint(propName, defaultValue) {
+        const container = document.getElementById(`${propName}-points`);
+        const id = controlPointIdCounter++;
+        const div = document.createElement("div");
+        div.className = "control-point";
+        div.id = `cp-${id}`;
+        const inputType = propName === "color" ? "color" : "number";
+        const step = propName === "opacity" ? "0.1" : "1";
+        div.innerHTML = `
+            <input type="number" class="cp-index" placeholder="%" value="0" min="0" max="100" step="1">
+            <input type="${inputType}" class="cp-value" placeholder="Value" value="${defaultValue}" step="${step}">
+            <button class="remove-btn" onclick="removeControlPoint(${id})">X</button>
+        `;
+        container.appendChild(div);
+      }
+      function removeControlPoint(id) {
+        document.getElementById(`cp-${id}`).remove();
+      }
+
+      // --- CORE LOGIC & GENERATION (Unchanged) ---
+      function calculatePropertyValue(
+        currentIndex,
+        controlPoints,
+        loopLength,
+        lerpFunc,
+        frequency,
+        totalPoints
+      ) {
+        if (controlPoints.length === 0) return undefined;
+        if (controlPoints.length === 1) return controlPoints[0].value;
+
+        // For frequency = 1 (no loop), interpolate across entire range
+        if (frequency === 1) {
+          const startPoint = controlPoints[0];
+          const endPoint = controlPoints[controlPoints.length - 1];
+          const progress = currentIndex / (totalPoints - 1);
+          return lerpFunc(startPoint.value, endPoint.value, progress);
+        }
+
+        // For frequency > 1, use looping behavior
+        let startPoint = controlPoints.findLast((p) => p.index <= currentIndex);
+        let endPoint = controlPoints.find((p) => p.index > currentIndex);
+        if (!startPoint) {
+          startPoint = controlPoints[controlPoints.length - 1];
+          endPoint = controlPoints[0];
+        } else if (!endPoint) {
+          endPoint = controlPoints[0];
+        }
+        let startIndex = startPoint.index;
+        let endIndex = endPoint.index;
+        let range;
+        if (startIndex > endIndex) {
+          range = loopLength - startIndex + endIndex;
+          if (currentIndex >= startIndex) {
+            currentIndex = currentIndex - startIndex;
+          } else {
+            currentIndex = currentIndex + (loopLength - startIndex);
+          }
+        } else {
+          range = endIndex - startIndex;
+          currentIndex = currentIndex - startIndex;
+        }
+        if (range === 0) return startPoint.value;
+        const amount = currentIndex / range;
+        return lerpFunc(startPoint.value, endPoint.value, amount);
+      }
+
+      function generate() {
+        const pendulums = getPendulumData();
+        if (pendulums.length === 0) {
+          document.getElementById("visualizer").innerHTML =
+            "<p>Add at least one pendulum to generate visualization</p>";
+          return;
+        }
+
+        const timeStart = parseFloat(
+          document.getElementById("timeStart").value
+        );
+        const timeEnd = parseFloat(document.getElementById("timeEnd").value);
+        const numPoints = parseInt(document.getElementById("pointCount").value);
+
+        if (timeEnd <= timeStart) {
+          document.getElementById("visualizer").innerHTML =
+            "<p>Time End must be greater than Time Start</p>";
+          return;
+        }
+
+        if (numPoints < 2) {
+          document.getElementById("visualizer").innerHTML =
+            "<p>Points to Be Generated must be at least 2</p>";
+          return;
+        }
+
+        const points = generateHarmonographPoints(
+          pendulums,
+          timeStart,
+          timeEnd,
+          numPoints
+        );
+        const renderMode = document.getElementById("renderMode").value;
+
+        // Apply property controls to the points
+        const properties =
+          renderMode === "line"
+            ? ["color", "lineWidth", "opacity"]
+            : ["color", "objectWidth", "height", "opacity"];
+
+        properties.forEach((propName) => {
+          const fieldset = document
+            .getElementById(`${propName}-points`)
+            ?.closest("fieldset");
+          if (!fieldset) return;
+
+          const frequencyInput = fieldset.querySelector(".prop-frequency");
+          const frequency = parseFloat(frequencyInput.value);
+          const loopLength = calculateLoopLength(frequency, numPoints);
+
+          const offset = parseInt(fieldset.querySelector(".prop-offset").value);
+          const lerpFunc = propName === "color" ? lerpColor : lerp;
+          const controlPoints = Array.from(
+            fieldset.querySelectorAll(".control-point")
+          )
+            .map((el) => ({
+              percentage: parseInt(el.querySelector(".cp-index").value), // Now stored as percentage
+              value:
+                el.querySelector(".cp-value").type === "number"
+                  ? parseFloat(el.querySelector(".cp-value").value)
+                  : el.querySelector(".cp-value").value,
+            }))
+            .sort((a, b) => a.percentage - b.percentage);
+          if (controlPoints.length === 0 || loopLength <= 0) return;
+
+          // Convert percentages to actual indices based on loop length
+          const indexControlPoints = controlPoints.map((cp) => ({
+            index: Math.round((cp.percentage / 100) * (loopLength - 1)),
+            value: cp.value,
+          }));
+
+          // Auto-add first and last control points for frequency = 1 if not present
+          if (frequency === 1 && indexControlPoints.length >= 1) {
+            // Ensure we have a point at index 0 (0%)
+            if (!indexControlPoints.find((cp) => cp.index === 0)) {
+              indexControlPoints.unshift({
+                index: 0,
+                value: indexControlPoints[0].value,
+              });
+            }
+            // Ensure we have a point at the last index (100%)
+            const lastIndex = numPoints - 1;
+            if (!indexControlPoints.find((cp) => cp.index === lastIndex)) {
+              indexControlPoints.push({
+                index: lastIndex,
+                value: indexControlPoints[indexControlPoints.length - 1].value,
+              });
+            }
+            indexControlPoints.sort((a, b) => a.index - b.index);
+          }
+
+          for (let i = 0; i < points.length; i++) {
+            let effectiveIndex = i - offset;
+
+            if (frequency === 1) {
+              // For no-loop mode, use the actual index
+              effectiveIndex = Math.max(
+                0,
+                Math.min(effectiveIndex, numPoints - 1)
+              );
+            } else {
+              // For looping mode, wrap the index
+              effectiveIndex =
+                ((effectiveIndex % loopLength) + loopLength) % loopLength;
+            }
+
+            const value = calculatePropertyValue(
+              effectiveIndex,
+              indexControlPoints,
+              loopLength,
+              lerpFunc,
+              frequency,
+              numPoints
+            );
+            if (value !== undefined) {
+              points[i][propName] = value;
+            }
+          }
+        });
+
+        if (renderMode === "line") {
+          renderHarmonograph(points);
+        } else {
+          renderObjects(points);
+        }
+      }
+
+      function renderHarmonograph(points) {
+        const visualizer = document.getElementById("visualizer");
+        visualizer.innerHTML = "";
+
+        // Create SVG for drawing curves
+        const svg = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg"
+        );
+        svg.style.width = "100%";
+        svg.style.height = "100%";
+        svg.style.background = "#fff";
+
+        if (points.length < 2) return;
+
+        // Calculate bounds for scaling
+        const xValues = points.map((p) => p.x);
+        const yValues = points.map((p) => p.y);
+        const xMin = Math.min(...xValues);
+        const xMax = Math.max(...xValues);
+        const yMin = Math.min(...yValues);
+        const yMax = Math.max(...yValues);
+
+        const padding = 50;
+        const svgWidth = visualizer.clientWidth || 800;
+        const svgHeight = visualizer.clientHeight || 600;
+
+        // Scale points to fit in visualizer
+        const scaledPoints = points.map((point) => ({
+          x:
+            padding +
+            ((point.x - xMin) / (xMax - xMin)) * (svgWidth - 2 * padding),
+          y:
+            padding +
+            ((point.y - yMin) / (yMax - yMin)) * (svgHeight - 2 * padding),
+          color: point.color,
+          lineWidth: point.lineWidth,
+          opacity: point.opacity,
+        }));
+
+        // Create individual Bezier curve segments to support varying properties
+        for (let i = 0; i < scaledPoints.length - 1; i++) {
+          const currentPoint = scaledPoints[i];
+          const nextPoint = scaledPoints[i + 1];
+
+          // Calculate control points for this segment
+          const currentControls = calculateControlPoints(scaledPoints, i);
+          const nextControls = calculateControlPoints(scaledPoints, i + 1);
+
+          let pathData = `M ${currentPoint.x} ${currentPoint.y}`;
+
+          if (currentControls && nextControls) {
+            // Use Bezier curve
+            const cp1 = currentControls.cp2; // Outgoing from current point
+            const cp2 = nextControls.cp1; // Incoming to next point
+            pathData += ` C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${nextPoint.x} ${nextPoint.y}`;
+          } else {
+            // Fallback to line
+            pathData += ` L ${nextPoint.x} ${nextPoint.y}`;
+          }
+
+          // Create path element for this segment
+          const path = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          path.setAttribute("d", pathData);
+          path.setAttribute("fill", "none");
+          path.setAttribute("stroke", currentPoint.color || "#000");
+          path.setAttribute("stroke-width", currentPoint.lineWidth || 1);
+          path.setAttribute(
+            "opacity",
+            currentPoint.opacity !== undefined ? currentPoint.opacity : 1
+          );
+          path.setAttribute("stroke-linecap", "butt");
+
+          svg.appendChild(path);
+        }
+
+        visualizer.appendChild(svg);
+      }
+
+      function renderObjects(points) {
+        const visualizer = document.getElementById("visualizer");
+        visualizer.innerHTML = "";
+
+        // Create SVG for drawing objects
+        const svg = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg"
+        );
+        svg.style.width = "100%";
+        svg.style.height = "100%";
+        svg.style.background = "#fff";
+
+        if (points.length === 0) return;
+
+        // Calculate bounds for scaling
+        const xValues = points.map((p) => p.x);
+        const yValues = points.map((p) => p.y);
+        const xMin = Math.min(...xValues);
+        const xMax = Math.max(...xValues);
+        const yMin = Math.min(...yValues);
+        const yMax = Math.max(...yValues);
+
+        const padding = 50;
+        const svgWidth = visualizer.clientWidth || 800;
+        const svgHeight = visualizer.clientHeight || 600;
+
+        // Create circles for each point
+        points.forEach((point, i) => {
+          // Scale points to fit in visualizer
+          const x =
+            padding +
+            ((point.x - xMin) / (xMax - xMin)) * (svgWidth - 2 * padding);
+          const y =
+            padding +
+            ((point.y - yMin) / (yMax - yMin)) * (svgHeight - 2 * padding);
+
+          const circle = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+          circle.setAttribute("cx", x);
+          circle.setAttribute("cy", y);
+          circle.setAttribute("r", (point.objectWidth || 3) / 2);
+          circle.setAttribute("fill", point.color || "#000");
+          circle.setAttribute(
+            "opacity",
+            point.opacity !== undefined ? point.opacity : 1
+          );
+          circle.setAttribute("stroke", "none");
+
+          svg.appendChild(circle);
+        });
+
+        visualizer.appendChild(svg);
+      }
+
+      // --- COLLAPSIBLE FIELDSETS ---
+      function initializeCollapsibleFieldsets() {
+        document
+          .querySelectorAll("fieldset.collapsible")
+          .forEach((fieldset) => {
+            const legend = fieldset.querySelector("legend");
+            if (legend) {
+              legend.addEventListener("click", function () {
+                fieldset.classList.toggle("open");
+              });
+            }
+          });
+      }
+
+      // --- SAVE/LOAD SETTINGS ---
+      function saveSettings() {
+        const settings = {
+          version: "1.0",
+          timestamp: new Date().toISOString(),
+          mainControls: {
+            pointCount: document.getElementById("pointCount").value,
+            renderMode: document.getElementById("renderMode").value,
+            timeStart: document.getElementById("timeStart").value,
+            timeEnd: document.getElementById("timeEnd").value,
+          },
+          pendulums: [],
+          properties: {},
+        };
+
+        // Save pendulum data
+        document
+          .querySelectorAll(".pendulum-control")
+          .forEach((control, index) => {
+            const pendulum = {
+              frequency: control.querySelector(".pendulum-frequency").value,
+              magnitude: control.querySelector(".pendulum-magnitude").value,
+              phase: control.querySelector(".pendulum-phase").value,
+              dampening: control.querySelector(".pendulum-dampening").value,
+              xAxis: control.querySelector(".pendulum-x-axis").checked,
+              yAxis: control.querySelector(".pendulum-y-axis").checked,
+            };
+            settings.pendulums.push(pendulum);
+          });
+
+        // Save property controls
+        const propertyTypes = [
+          "color",
+          "lineWidth",
+          "objectWidth",
+          "height",
+          "opacity",
+        ];
+        propertyTypes.forEach((propName) => {
+          const fieldset = document
+            .getElementById(`${propName}-points`)
+            ?.closest("fieldset");
+          if (fieldset) {
+            const property = {
+              frequency: fieldset.querySelector(".prop-frequency")?.value,
+              offset: fieldset.querySelector(".prop-offset")?.value,
+              controlPoints: [],
+            };
+
+            // Save control points
+            fieldset.querySelectorAll(".control-point").forEach((cp) => {
+              const point = {
+                percentage: cp.querySelector(".cp-index").value, // Save as percentage
+                value: cp.querySelector(".cp-value").value,
+              };
+              property.controlPoints.push(point);
+            });
+
+            settings.properties[propName] = property;
+          }
+        });
+
+        // Download as JSON file
+        const blob = new Blob([JSON.stringify(settings, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `harmonograph-settings-${
+          new Date().toISOString().split("T")[0]
+        }.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function loadSettings() {
+        document.getElementById("fileInput").click();
+      }
+
+      function handleFileLoad(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const settings = JSON.parse(e.target.result);
+            applySettings(settings, true); // Pass true to indicate manual load
+          } catch (error) {
+            alert("Error loading settings: Invalid JSON file");
+            console.error("Settings load error:", error);
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function applySettings(settings, showAlert = false) {
+        // Apply main controls
+        if (settings.mainControls) {
+          document.getElementById("pointCount").value =
+            settings.mainControls.pointCount || "1000";
+          document.getElementById("renderMode").value =
+            settings.mainControls.renderMode || "line";
+          document.getElementById("timeStart").value =
+            settings.mainControls.timeStart || "0";
+          document.getElementById("timeEnd").value =
+            settings.mainControls.timeEnd || "10";
+        }
+
+        // Clear existing pendulums
+        document.getElementById("pendulum-tbody").innerHTML = "";
+        pendulumIdCounter = 0;
+
+        // Apply pendulums
+        if (settings.pendulums && settings.pendulums.length > 0) {
+          settings.pendulums.forEach((pendulumData) => {
+            addPendulum();
+            const lastPendulum = document.querySelector(
+              ".pendulum-control:last-child"
+            );
+            if (lastPendulum) {
+              lastPendulum.querySelector(".pendulum-frequency").value =
+                pendulumData.frequency;
+              lastPendulum.querySelector(".pendulum-magnitude").value =
+                pendulumData.magnitude;
+              lastPendulum.querySelector(".pendulum-phase").value =
+                pendulumData.phase;
+              lastPendulum.querySelector(".pendulum-dampening").value =
+                pendulumData.dampening;
+              lastPendulum.querySelector(".pendulum-x-axis").checked =
+                pendulumData.xAxis;
+              lastPendulum.querySelector(".pendulum-y-axis").checked =
+                pendulumData.yAxis;
+            }
+          });
+        }
+
+        // Apply property controls
+        if (settings.properties) {
+          Object.keys(settings.properties).forEach((propName) => {
+            const propData = settings.properties[propName];
+            const fieldset = document
+              .getElementById(`${propName}-points`)
+              ?.closest("fieldset");
+
+            if (fieldset && propData) {
+              // Set frequency and offset
+              if (fieldset.querySelector(".prop-frequency")) {
+                fieldset.querySelector(".prop-frequency").value =
+                  propData.frequency || "0.02";
+              }
+              if (fieldset.querySelector(".prop-offset")) {
+                fieldset.querySelector(".prop-offset").value =
+                  propData.offset || "0";
+              }
+
+              // Clear existing control points
+              const container = document.getElementById(`${propName}-points`);
+              container.innerHTML = "";
+
+              // Add control points
+              if (propData.controlPoints) {
+                propData.controlPoints.forEach((pointData) => {
+                  addControlPoint(propName, pointData.value);
+                  const lastPoint = container.querySelector(
+                    ".control-point:last-child"
+                  );
+                  if (lastPoint) {
+                    // Handle both old format (index) and new format (percentage)
+                    const percentageValue =
+                      pointData.percentage !== undefined
+                        ? pointData.percentage
+                        : pointData.index;
+                    lastPoint.querySelector(".cp-index").value =
+                      percentageValue;
+                    lastPoint.querySelector(".cp-value").value =
+                      pointData.value;
+                  }
+                });
+              }
+            }
+          });
+        }
+
+        // Update displays and regenerate
+        updateLoopLengthDisplays();
+        toggleRenderMode();
+
+        // Generate visualization automatically
+        setTimeout(() => {
+          generate();
+        }, 100); // Small delay to ensure all DOM updates are complete
+
+        // Only show alert for manual loads, not automatic default loads
+        if (showAlert) {
+          alert("Settings loaded successfully!");
+        }
+      }
+
+      function render(objects) {
+        const visualizer = document.getElementById("visualizer");
+        visualizer.innerHTML = "";
+        const defaultStyles = {
+          color: "#cccccc",
+          width: 20,
+          height: 20,
+          opacity: 1,
+        };
+        for (const obj of objects) {
+          const bar = document.createElement("div");
+          bar.className = "object-bar";
+          bar.textContent = obj.id;
+          bar.style.backgroundColor = obj.color || defaultStyles.color;
+          bar.style.width = (obj.width || defaultStyles.width) + "px";
+          bar.style.height = (obj.height || defaultStyles.height) + "px";
+          bar.style.opacity =
+            obj.opacity !== undefined ? obj.opacity : defaultStyles.opacity;
+          visualizer.appendChild(bar);
+        }
+      }
+
+      // Load default settings from default.json
+      async function loadDefaultSettings() {
+        try {
+          const response = await fetch("default.json");
+          if (response.ok) {
+            const defaultSettings = await response.json();
+            applySettings(defaultSettings);
+            console.log("Default settings loaded successfully");
+          } else {
+            console.log("No default.json found, using built-in defaults");
+            // Add a basic pendulum if none exist
+            addPendulum();
+          }
+        } catch (error) {
+          console.log(
+            "Could not load default.json, using built-in defaults:",
+            error
+          );
+          // Add a basic pendulum if none exist
+          addPendulum();
+        }
+      }
+
+      // Initialize collapsible fieldsets when DOM is ready
+      document.addEventListener("DOMContentLoaded", function () {
+        initializeCollapsibleFieldsets();
+        updateLoopLengthDisplays();
+
+        // Add event listeners to frequency inputs to update displays
+        document.querySelectorAll(".prop-frequency").forEach((input) => {
+          input.addEventListener("input", updateLoopLengthDisplays);
+        });
+
+        // Add event listener to point count to update displays
+        document
+          .getElementById("pointCount")
+          .addEventListener("input", updateLoopLengthDisplays);
+
+        // Load default settings and generate initial visualization
+        loadDefaultSettings();
+      });
+
+      // --- BEZIER CURVE FUNCTIONS ---
+
+      function calculateTangentVector(points, index, lookAhead = 2) {
+        // Calculate tangent by considering multiple points on each side
+        const point = points[index];
+        let tangentX = 0,
+          tangentY = 0;
+        let weightSum = 0;
+
+        // Look at points before and after, with decreasing weight for distant points
+        for (let offset = 1; offset <= lookAhead; offset++) {
+          const weight = 1.0 / offset; // Closer points have more influence
+
+          // Forward direction
+          if (index + offset < points.length) {
+            const forwardPoint = points[index + offset];
+            tangentX += weight * (forwardPoint.x - point.x);
+            tangentY += weight * (forwardPoint.y - point.y);
+            weightSum += weight;
+          }
+
+          // Backward direction
+          if (index - offset >= 0) {
+            const backwardPoint = points[index - offset];
+            tangentX += weight * (point.x - backwardPoint.x);
+            tangentY += weight * (point.y - backwardPoint.y);
+            weightSum += weight;
+          }
+        }
+
+        // Normalize the tangent
+        if (weightSum > 0) {
+          tangentX /= weightSum;
+          tangentY /= weightSum;
+        }
+
+        // Handle edge cases
+        if (index === 0 && points.length > 1) {
+          tangentX = points[1].x - points[0].x;
+          tangentY = points[1].y - points[0].y;
+        } else if (index === points.length - 1 && points.length > 1) {
+          tangentX = points[index].x - points[index - 1].x;
+          tangentY = points[index].y - points[index - 1].y;
+        }
+
+        return { x: tangentX, y: tangentY };
+      }
+
+      function calculateControlPoints(points, index, tangentStrength = 0.3) {
+        if (points.length < 2) return null;
+
+        const point = points[index];
+        const tangent = calculateTangentVector(points, index, 3); // Look 3 points ahead/behind
+
+        // Calculate control point distances based on neighboring point distances
+        let prevDistance = 0;
+        let nextDistance = 0;
+
+        if (index > 0) {
+          const prevPoint = points[index - 1];
+          prevDistance = Math.sqrt(
+            Math.pow(point.x - prevPoint.x, 2) +
+              Math.pow(point.y - prevPoint.y, 2)
+          );
+        }
+
+        if (index < points.length - 1) {
+          const nextPoint = points[index + 1];
+          nextDistance = Math.sqrt(
+            Math.pow(nextPoint.x - point.x, 2) +
+              Math.pow(nextPoint.y - point.y, 2)
+          );
+        }
+
+        // Use average distance if both exist, otherwise use the available one
+        const baseDistance =
+          (prevDistance + nextDistance) /
+          (prevDistance > 0 && nextDistance > 0 ? 2 : 1);
+        const controlDistance = baseDistance * tangentStrength;
+
+        // Normalize tangent vector
+        const tangentLength = Math.sqrt(
+          tangent.x * tangent.x + tangent.y * tangent.y
+        );
+        if (tangentLength === 0) return null;
+
+        const unitTangentX = tangent.x / tangentLength;
+        const unitTangentY = tangent.y / tangentLength;
+
+        // Create collinear control points on both sides of the point
+        const controlPoint1 = {
+          x: point.x - unitTangentX * controlDistance,
+          y: point.y - unitTangentY * controlDistance,
+        };
+
+        const controlPoint2 = {
+          x: point.x + unitTangentX * controlDistance,
+          y: point.y + unitTangentY * controlDistance,
+        };
+
+        return { cp1: controlPoint1, cp2: controlPoint2 };
+      }
+
+      function generateBezierPath(points) {
+        if (points.length < 2) return "";
+
+        let pathData = `M ${points[0].x} ${points[0].y}`;
+
+        for (let i = 0; i < points.length - 1; i++) {
+          const currentPoint = points[i];
+          const nextPoint = points[i + 1];
+
+          // Calculate control points for current and next points
+          const currentControls = calculateControlPoints(points, i);
+          const nextControls = calculateControlPoints(points, i + 1);
+
+          if (currentControls && nextControls) {
+            // Use the outgoing control point from current and incoming control point from next
+            const cp1 = currentControls.cp2; // Outgoing from current point
+            const cp2 = nextControls.cp1; // Incoming to next point
+
+            pathData += ` C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${nextPoint.x} ${nextPoint.y}`;
+          } else {
+            // Fallback to line if control points can't be calculated
+            pathData += ` L ${nextPoint.x} ${nextPoint.y}`;
+          }
+        }
+
+        return pathData;
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,110 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background-color: #f4f4f4;
+}
+
+.container {
+  width: 40%;
+  margin: auto;
+}
+
+.section {
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.toggle {
+  width: 100%;
+  text-align: left;
+  background: #0078d7;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.content {
+  display: none;
+  padding: 10px;
+}
+
+.form-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+}
+
+label {
+  flex: 1;
+}
+
+input {
+  flex: 2;
+}
+
+.add-btn {
+  margin-top: 5px;
+  padding: 5px;
+  background: #28a745;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+
+input[type="range"] {
+  width: 80px;
+  transition: width 0.3s ease-in-out;
+}
+
+input[type="range"]:hover {
+  width: 150px;
+}
+.section {
+  max-width: 100%; /* Ensures the section doesn't extend too far */
+  padding: 10px;
+}
+
+table {
+  width: 100%; /* Forces the table to match the section's width */
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 6px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+  max-width: 80px; /* Adjust column width so they fit inside the container */
+  white-space: nowrap; /* Prevents large inputs from expanding too much */
+}
+
+input {
+  width: 80px; /* Limits input size */
+}
+
+input[type="range"] {
+  width: 70px;
+  transition: width 0.3s ease-in-out;
+}
+
+input[type="range"]:hover {
+  width: 120px; /* Expands on hover for fine-tuning */
+}

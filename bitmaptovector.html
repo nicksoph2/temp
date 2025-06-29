@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SVG Image-Based Editor</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #f5f5f5;
+        display: flex;
+        height: 100vh;
+      }
+
+      .sidebar {
+        width: 300px;
+        background: #2c3e50;
+        color: white;
+        padding: 20px;
+        overflow-y: auto;
+      }
+
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: white;
+      }
+
+      .toolbar {
+        background: #34495e;
+        color: white;
+        padding: 15px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .workspace {
+        flex: 1;
+        display: flex;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .canvas-container {
+        flex: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ecf0f1;
+        padding: 20px;
+      }
+
+      .canvas-wrapper {
+        position: relative;
+        background: white;
+        border: 2px solid #bdc3c7;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      svg {
+        display: block;
+        cursor: crosshair;
+      }
+
+      .background-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .svg-layer {
+        position: relative;
+        z-index: 2;
+      }
+
+      .sidebar h2 {
+        margin-bottom: 15px;
+        color: #ecf0f1;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 5px;
+      }
+
+      .section {
+        margin-bottom: 25px;
+      }
+
+      .control-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
+
+      input,
+      select,
+      button {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #bdc3c7;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      button {
+        background: #3498db;
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.3s;
+      }
+
+      button:hover {
+        background: #2980b9;
+      }
+
+      button.secondary {
+        background: #95a5a6;
+      }
+
+      button.secondary:hover {
+        background: #7f8c8d;
+      }
+
+      button.danger {
+        background: #e74c3c;
+      }
+
+      button.danger:hover {
+        background: #c0392b;
+      }
+
+      .toolbar button {
+        width: auto;
+        padding: 8px 15px;
+        margin: 0;
+      }
+
+      .color-preview {
+        width: 30px;
+        height: 30px;
+        border: 2px solid #bdc3c7;
+        border-radius: 4px;
+        display: inline-block;
+        margin-left: 10px;
+      }
+
+      .shape-list {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #34495e;
+        border-radius: 4px;
+        background: #34495e;
+      }
+
+      .shape-item {
+        padding: 8px;
+        border-bottom: 1px solid #2c3e50;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .shape-item:hover {
+        background: #3498db;
+      }
+
+      .shape-item.selected {
+        background: #2980b9;
+      }
+
+      .shape-item button {
+        width: auto;
+        padding: 4px 8px;
+        font-size: 12px;
+        margin-left: 5px;
+      }
+
+      .range-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .range-group input[type="range"] {
+        flex: 1;
+      }
+
+      .range-group span {
+        min-width: 40px;
+        font-weight: bold;
+        color: #3498db;
+      }
+
+      .mode-toggle {
+        display: flex;
+        background: #34495e;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .mode-toggle button {
+        flex: 1;
+        border-radius: 0;
+        border: none;
+        background: #34495e;
+        color: white;
+        padding: 8px;
+      }
+
+      .mode-toggle button.active {
+        background: #3498db;
+      }
+
+      .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+      }
+
+      .file-input-wrapper input[type="file"] {
+        position: absolute;
+        left: -9999px;
+      }
+
+      .file-input-wrapper label {
+        background: #27ae60;
+        color: white;
+        padding: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: block;
+        text-align: center;
+        font-weight: 500;
+      }
+
+      .file-input-wrapper label:hover {
+        background: #219a52;
+      }
+
+      .status-bar {
+        background: #ecf0f1;
+        padding: 10px 20px;
+        border-top: 1px solid #bdc3c7;
+        font-size: 12px;
+        color: #7f8c8d;
+      }
+
+      .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #2ecc71;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 4px;
+        z-index: 1000;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .toast.error {
+        background: #e74c3c;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>Image Source</h2>
+      <div class="section">
+        <div class="control-group">
+          <div class="file-input-wrapper">
+            <input type="file" id="imageUpload" accept="image/*" />
+            <label for="imageUpload">Upload Image</label>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Image Opacity:</label>
+          <div class="range-group">
+            <input
+              type="range"
+              id="imageOpacity"
+              min="0"
+              max="1"
+              step="0.1"
+              value="0.7"
+            />
+            <span id="imageOpacityValue">0.7</span>
+          </div>
+        </div>
+      </div>
+
+      <h2>Shape Tools</h2>
+      <div class="section">
+        <div class="control-group">
+          <label>Shape Type:</label>
+          <select id="shapeType">
+            <option value="circle">Circle</option>
+            <option value="rect">Rectangle</option>
+            <option value="ellipse">Ellipse</option>
+            <option value="polygon">Polygon</option>
+            <option value="path">Path</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Base Size:</label>
+          <div class="range-group">
+            <input type="range" id="baseSize" min="5" max="100" value="20" />
+            <span id="baseSizeValue">20</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Sampling Radius (px):</label>
+          <div class="range-group">
+            <input
+              type="range"
+              id="samplingRadius"
+              min="1"
+              max="20"
+              value="1"
+            />
+            <span id="samplingRadiusValue">1</span>
+          </div>
+        </div>
+      </div>
+
+      <h2>Sampling Mode</h2>
+      <div class="section">
+        <div class="mode-toggle">
+          <button id="colorMode" class="active">Color Sample</button>
+          <button id="brightnessMode">Brightness Size</button>
+        </div>
+        <div class="control-group">
+          <label>Size Variation (Brightness Mode):</label>
+          <div class="range-group">
+            <input
+              type="range"
+              id="sizeVariation"
+              min="0.1"
+              max="3"
+              step="0.1"
+              value="1"
+            />
+            <span id="sizeVariationValue">1.0</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Brightness Threshold:</label>
+          <div class="range-group">
+            <input
+              type="range"
+              id="brightnessThreshold"
+              min="0"
+              max="255"
+              value="128"
+            />
+            <span id="brightnessThresholdValue">128</span>
+          </div>
+        </div>
+      </div>
+
+      <h2>SVG Overlay</h2>
+      <div class="section">
+        <div class="control-group">
+          <label>SVG X:</label>
+          <div class="range-group">
+            <input type="range" id="svgX" min="-600" max="600" value="0" />
+            <span id="svgXValue">0</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>SVG Y:</label>
+          <div class="range-group">
+            <input type="range" id="svgY" min="-400" max="400" value="0" />
+            <span id="svgYValue">0</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>SVG Width:</label>
+          <div class="range-group">
+            <input
+              type="range"
+              id="svgWidth"
+              min="100"
+              max="2000"
+              value="600"
+            />
+            <span id="svgWidthValue">600</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>SVG Height:</label>
+          <div class="range-group">
+            <input
+              type="range"
+              id="svgHeight"
+              min="100"
+              max="2000"
+              value="400"
+            />
+            <span id="svgHeightValue">400</span>
+          </div>
+        </div>
+      </div>
+
+      <h2>SVG Objects</h2>
+      <div class="section">
+        <div class="shape-list" id="shapeList"></div>
+        <div class="control-group">
+          <button id="clearAll" class="danger">Clear All</button>
+        </div>
+      </div>
+
+      <h2>Export</h2>
+      <div class="section">
+        <div class="control-group">
+          <button id="exportSVG">Download SVG</button>
+        </div>
+        <div class="control-group">
+          <button id="copySVG" class="secondary">Copy SVG Code</button>
+        </div>
+      </div>
+
+      <h2>Auto Placement</h2>
+      <div class="section">
+        <div class="control-group">
+          <label>Number of Circles:</label>
+          <div class="range-group">
+            <input type="range" id="fermatCount" min="1" max="200" value="50" />
+            <span id="fermatCountValue">50</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <button id="fermatSpiralBtn">Generate Fermat Spiral</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="toolbar">
+        <button id="undoBtn">Undo</button>
+        <button id="redoBtn">Redo</button>
+        <span>|</span>
+        <span>Mode: <span id="currentMode">Color Sampling</span></span>
+        <span>|</span>
+        <span>Objects: <span id="objectCount">0</span></span>
+      </div>
+
+      <div class="workspace">
+        <div class="canvas-container">
+          <div class="canvas-wrapper">
+            <canvas
+              id="backgroundCanvas"
+              class="background-image"
+              width="600"
+              height="400"
+            ></canvas>
+
+            <svg
+              id="svgCanvas"
+              class="svg-layer"
+              width="600"
+              height="400"
+              viewBox="0 0 600 400"
+            >
+              <defs>
+                <pattern
+                  id="checkerboard"
+                  x="0"
+                  y="0"
+                  width="20"
+                  height="20"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <rect x="0" y="0" width="10" height="10" fill="#f0f0f0" />
+                  <rect x="10" y="10" width="10" height="10" fill="#f0f0f0" />
+                  <rect x="0" y="10" width="10" height="10" fill="#ffffff" />
+                  <rect x="10" y="0" width="10" height="10" fill="#ffffff" />
+                </pattern>
+              </defs>
+            </svg>
+
+            <!-- <svg
+              id="svgCanvas"
+              class="svg-layer"
+              width="600"
+              height="400"
+              viewBox="0 0 600 400"
+            >
+              <defs>
+                <pattern
+                  id="checkerboard"
+                  x="0"
+                  y="0"
+                  width="20"
+                  height="20"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <rect x="0" y="0" width="10" height="10" fill="#f0f0f0" />
+                  <rect x="10" y="10" width="10" height="10" fill="#f0f0f0" />
+                  <rect x="0" y="10" width="10" height="10" fill="#ffffff" />
+                  <rect x="10" y="0" width="10" height="10" fill="#ffffff" />
+                </pattern>
+              </defs>
+              
+            </svg> -->
+          </div>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <span id="statusText">Ready - Click to place shapes on the canvas</span>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+      class SVGImageEditor {
+        constructor() {
+          this.canvas = document.getElementById("backgroundCanvas");
+          this.ctx = this.canvas.getContext("2d");
+          this.svg = document.getElementById("svgCanvas");
+          this.shapes = [];
+          this.selectedShape = null;
+          this.currentMode = "color"; // 'color' or 'brightness'
+          this.imageData = null;
+          this.sourceImage = null;
+          this.history = [];
+          this.historyIndex = -1;
+          this.maxHistory = 50;
+
+          this.initializeEventListeners();
+          this.updateUI();
+          this.updateSVGOverlay();
+        }
+
+        initializeEventListeners() {
+          // Image upload
+          document
+            .getElementById("imageUpload")
+            .addEventListener("change", (e) => {
+              this.loadImage(e.target.files[0]);
+            });
+
+          // Image opacity
+          document
+            .getElementById("imageOpacity")
+            .addEventListener("input", (e) => {
+              this.updateImageOpacity(parseFloat(e.target.value));
+            });
+
+          // Mode toggle
+          document.getElementById("colorMode").addEventListener("click", () => {
+            this.setMode("color");
+          });
+          document
+            .getElementById("brightnessMode")
+            .addEventListener("click", () => {
+              this.setMode("brightness");
+            });
+
+          // SVG canvas click
+          this.svg.addEventListener("click", (e) => {
+            this.handleCanvasClick(e);
+          });
+
+          // Control sliders
+          this.setupSliderListeners();
+
+          // Export buttons
+          document.getElementById("exportSVG").addEventListener("click", () => {
+            this.exportSVG();
+          });
+          document.getElementById("copySVG").addEventListener("click", () => {
+            this.copySVGToClipboard();
+          });
+
+          // Clear all
+          document.getElementById("clearAll").addEventListener("click", () => {
+            this.clearAll();
+          });
+
+          // Undo/Redo
+          document.getElementById("undoBtn").addEventListener("click", () => {
+            this.undo();
+          });
+          document.getElementById("redoBtn").addEventListener("click", () => {
+            this.redo();
+          });
+
+          // Fermat Spiral
+          document
+            .getElementById("fermatSpiralBtn")
+            .addEventListener("click", () => {
+              this.generateFermatSpiral();
+            });
+        }
+
+        setupSliderListeners() {
+          const sliders = [
+            "imageOpacity",
+            "baseSize",
+            "sizeVariation",
+            "brightnessThreshold",
+            "samplingRadius",
+            "svgX",
+            "svgY",
+            "svgWidth",
+            "svgHeight",
+            "fermatCount",
+          ];
+
+          sliders.forEach((id) => {
+            const slider = document.getElementById(id);
+            const valueSpan = document.getElementById(id + "Value");
+
+            slider.addEventListener("input", (e) => {
+              const value = parseFloat(e.target.value);
+              valueSpan.textContent = Math.round(value);
+              if (
+                id === "sizeVariation" ||
+                id === "brightnessThreshold" ||
+                id === "samplingRadius"
+              ) {
+                this.updateBrightnessBasedSizes();
+              }
+              if (
+                id === "svgX" ||
+                id === "svgY" ||
+                id === "svgWidth" ||
+                id === "svgHeight"
+              ) {
+                this.updateSVGOverlay();
+              }
+            });
+          });
+        }
+
+        async loadImage(file) {
+          if (!file) return;
+
+          const img = new Image();
+          img.onload = () => {
+            this.sourceImage = img;
+            this.drawImageToCanvas();
+            this.showToast("Image loaded successfully!");
+          };
+
+          img.onerror = () => {
+            this.showToast("Failed to load image", "error");
+          };
+
+          img.src = URL.createObjectURL(file);
+        }
+
+        showToast(message, type = "success") {
+          const toast = document.getElementById("toast");
+          toast.textContent = message;
+          toast.className = "toast show" + (type === "error" ? " error" : "");
+
+          setTimeout(() => {
+            toast.classList.remove("show");
+          }, 3000);
+        }
+
+        drawImageToCanvas() {
+          if (!this.sourceImage) return;
+
+          const canvas = this.canvas;
+          const ctx = this.ctx;
+
+          // Resize canvas to fit image while maintaining aspect ratio
+          const aspectRatio = this.sourceImage.width / this.sourceImage.height;
+          const maxWidth = 600; // Fixed width
+          const maxHeight = 400; // Fixed height
+
+          let width, height;
+          if (aspectRatio > maxWidth / maxHeight) {
+            width = maxWidth;
+            height = maxWidth / aspectRatio;
+          } else {
+            height = maxHeight;
+            width = maxHeight * aspectRatio;
+          }
+
+          // Set canvas size
+          canvas.width = width;
+          canvas.height = height;
+          canvas.style.width = width + "px";
+          canvas.style.height = height + "px";
+
+          // Fill canvas with white before drawing image
+          ctx.save();
+          ctx.globalAlpha = 1.0;
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+
+          // Draw image
+          ctx.drawImage(this.sourceImage, 0, 0, width, height);
+
+          // Store image data for sampling
+          this.imageData = ctx.getImageData(0, 0, width, height);
+
+          // Update SVG canvas size to match
+          this.svg.setAttribute("width", width);
+          this.svg.setAttribute("height", height);
+          this.svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+          this.svg.style.width = width + "px";
+          this.svg.style.height = height + "px";
+
+          // Make sure canvas is visible and positioned correctly
+          canvas.style.display = "block";
+          canvas.style.position = "absolute";
+          canvas.style.top = "0";
+          canvas.style.left = "0";
+          canvas.style.zIndex = "1";
+
+          console.log("Image loaded:", width + "x" + height);
+        }
+
+        updateImageOpacity(opacity) {
+          this.canvas.style.opacity = opacity;
+          document.getElementById("imageOpacityValue").textContent =
+            opacity.toFixed(1);
+        }
+
+        setMode(mode) {
+          this.currentMode = mode;
+
+          // Update UI
+          document
+            .getElementById("colorMode")
+            .classList.toggle("active", mode === "color");
+          document
+            .getElementById("brightnessMode")
+            .classList.toggle("active", mode === "brightness");
+          document.getElementById("currentMode").textContent =
+            mode === "color" ? "Color Sampling" : "Brightness Sizing";
+
+          // Update existing shapes if in brightness mode
+          if (mode === "brightness") {
+            this.updateBrightnessBasedSizes();
+          }
+        }
+
+        handleCanvasClick(e) {
+          const rect = this.svg.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          this.createShape(x, y);
+        }
+
+        createShape(x, y) {
+          const shapeType = document.getElementById("shapeType").value;
+          const baseSize = parseInt(document.getElementById("baseSize").value);
+
+          let shape = {
+            id: "shape_" + Date.now(),
+            type: shapeType,
+            x: x,
+            y: y,
+            baseSize: baseSize,
+            color: "#000000",
+            size: baseSize,
+          };
+
+          // Sample color from image
+          if (this.imageData) {
+            const sampledColor = this.sampleColorAt(x, y);
+            shape.color = sampledColor;
+
+            if (this.currentMode === "brightness") {
+              const brightness = this.getBrightnessAt(x, y);
+              shape.size = this.calculateSizeFromBrightness(
+                brightness,
+                baseSize
+              );
+            }
+          }
+
+          this.shapes.push(shape);
+          this.saveToHistory();
+          this.renderShape(shape);
+          this.updateShapeList();
+          this.updateUI();
+        }
+
+        sampleColorAt(x, y) {
+          if (!this.imageData) return "#000000";
+          const radius =
+            parseInt(document.getElementById("samplingRadius").value) || 1;
+          const { width, height, data } = this.imageData;
+          let r = 0,
+            g = 0,
+            b = 0,
+            count = 0;
+          for (let dy = -radius + 1; dy < radius; dy++) {
+            for (let dx = -radius + 1; dx < radius; dx++) {
+              const cx = Math.round((x * width) / this.svg.clientWidth) + dx;
+              const cy = Math.round((y * height) / this.svg.clientHeight) + dy;
+              if (cx >= 0 && cx < width && cy >= 0 && cy < height) {
+                const idx = (cy * width + cx) * 4;
+                r += data[idx];
+                g += data[idx + 1];
+                b += data[idx + 2];
+                count++;
+              }
+            }
+          }
+          if (count === 0) return "#000000";
+          r = Math.round(r / count);
+          g = Math.round(g / count);
+          b = Math.round(b / count);
+          return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        getBrightnessAt(x, y) {
+          if (!this.imageData) return 128;
+          const radius =
+            parseInt(document.getElementById("samplingRadius").value) || 1;
+          const { width, height, data } = this.imageData;
+          let sum = 0,
+            count = 0;
+          for (let dy = -radius + 1; dy < radius; dy++) {
+            for (let dx = -radius + 1; dx < radius; dx++) {
+              const cx = Math.round((x * width) / this.svg.clientWidth) + dx;
+              const cy = Math.round((y * height) / this.svg.clientHeight) + dy;
+              if (cx >= 0 && cx < width && cy >= 0 && cy < height) {
+                const idx = (cy * width + cx) * 4;
+                const r = data[idx];
+                const g = data[idx + 1];
+                const b = data[idx + 2];
+                sum += 0.299 * r + 0.587 * g + 0.114 * b;
+                count++;
+              }
+            }
+          }
+          if (count === 0) return 128;
+          return Math.round(sum / count);
+        }
+
+        calculateSizeFromBrightness(brightness, baseSize) {
+          const threshold = parseInt(
+            document.getElementById("brightnessThreshold").value
+          );
+          const variation = parseFloat(
+            document.getElementById("sizeVariation").value
+          );
+
+          // Normalize brightness to 0-1 range
+          const normalizedBrightness = brightness / 255;
+
+          // Calculate size multiplier based on brightness
+          let multiplier;
+          if (brightness > threshold) {
+            // Brighter areas = larger shapes
+            multiplier = 1 + normalizedBrightness * variation;
+          } else {
+            // Darker areas = smaller shapes
+            multiplier = Math.max(0.1, normalizedBrightness * variation);
+          }
+
+          return Math.round(baseSize * multiplier);
+        }
+
+        updateBrightnessBasedSizes() {
+          if (this.currentMode !== "brightness" || !this.imageData) return;
+
+          this.shapes.forEach((shape) => {
+            const brightness = this.getBrightnessAt(shape.x, shape.y);
+            shape.size = this.calculateSizeFromBrightness(
+              brightness,
+              shape.baseSize
+            );
+          });
+
+          this.rerenderAllShapes();
+        }
+
+        renderShape(shape) {
+          let element;
+
+          switch (shape.type) {
+            case "circle":
+              element = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "circle"
+              );
+              element.setAttribute("cx", shape.x);
+              element.setAttribute("cy", shape.y);
+              element.setAttribute("r", shape.size / 2);
+              break;
+
+            case "rect":
+              element = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "rect"
+              );
+              element.setAttribute("x", shape.x - shape.size / 2);
+              element.setAttribute("y", shape.y - shape.size / 2);
+              element.setAttribute("width", shape.size);
+              element.setAttribute("height", shape.size);
+              break;
+
+            case "ellipse":
+              element = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "ellipse"
+              );
+              element.setAttribute("cx", shape.x);
+              element.setAttribute("cy", shape.y);
+              element.setAttribute("rx", shape.size / 2);
+              element.setAttribute("ry", shape.size / 3);
+              break;
+
+            case "polygon":
+              element = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "polygon"
+              );
+              const points = this.generatePolygonPoints(
+                shape.x,
+                shape.y,
+                shape.size / 2,
+                6
+              );
+              element.setAttribute("points", points);
+              break;
+
+            case "path":
+              element = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "path"
+              );
+              const pathData = this.generateStarPath(
+                shape.x,
+                shape.y,
+                shape.size / 2
+              );
+              element.setAttribute("d", pathData);
+              break;
+          }
+
+          element.setAttribute("fill", shape.color);
+          element.setAttribute("stroke", "#333");
+          element.setAttribute("stroke-width", "0.5");
+          element.setAttribute("data-shape-id", shape.id);
+          element.style.cursor = "pointer";
+
+          // Add click handler for selection
+          element.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.selectShape(shape.id);
+          });
+
+          this.svg.appendChild(element);
+        }
+
+        generatePolygonPoints(cx, cy, radius, sides) {
+          const points = [];
+          for (let i = 0; i < sides; i++) {
+            const angle = (i / sides) * Math.PI * 2 - Math.PI / 2;
+            const x = cx + Math.cos(angle) * radius;
+            const y = cy + Math.sin(angle) * radius;
+            points.push(`${x},${y}`);
+          }
+          return points.join(" ");
+        }
+
+        generateStarPath(cx, cy, radius) {
+          const outerRadius = radius;
+          const innerRadius = radius * 0.5;
+          const points = 5;
+          let path = "";
+
+          for (let i = 0; i < points * 2; i++) {
+            const angle = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+            const r = i % 2 === 0 ? outerRadius : innerRadius;
+            const x = cx + Math.cos(angle) * r;
+            const y = cy + Math.sin(angle) * r;
+
+            if (i === 0) {
+              path += `M ${x} ${y}`;
+            } else {
+              path += ` L ${x} ${y}`;
+            }
+          }
+
+          return path + " Z";
+        }
+
+        rerenderAllShapes() {
+          // Remove all shape elements
+          const shapeElements = this.svg.querySelectorAll("[data-shape-id]");
+          shapeElements.forEach((el) => el.remove());
+
+          // Re-render all shapes
+          this.shapes.forEach((shape) => this.renderShape(shape));
+        }
+
+        selectShape(shapeId) {
+          this.selectedShape = shapeId;
+          this.updateShapeList();
+        }
+
+        deleteShape(shapeId) {
+          this.shapes = this.shapes.filter((shape) => shape.id !== shapeId);
+          const element = this.svg.querySelector(
+            `[data-shape-id="${shapeId}"]`
+          );
+          if (element) element.remove();
+
+          this.saveToHistory();
+          this.updateShapeList();
+          this.updateUI();
+        }
+
+        updateShapeList() {
+          const list = document.getElementById("shapeList");
+          list.innerHTML = "";
+
+          this.shapes.forEach((shape, index) => {
+            const item = document.createElement("div");
+            item.className =
+              "shape-item" +
+              (shape.id === this.selectedShape ? " selected" : "");
+
+            const info = document.createElement("span");
+            info.textContent = `${shape.type} ${index + 1}`;
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "Delete";
+            deleteBtn.className = "danger";
+            deleteBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              this.deleteShape(shape.id);
+            });
+
+            item.appendChild(info);
+            item.appendChild(deleteBtn);
+
+            item.addEventListener("click", () => {
+              this.selectShape(shape.id);
+            });
+
+            list.appendChild(item);
+          });
+        }
+
+        clearAll() {
+          if (confirm("Clear all shapes?")) {
+            this.shapes = [];
+            this.selectedShape = null;
+            this.rerenderAllShapes();
+            this.updateShapeList();
+            this.updateUI();
+            this.saveToHistory();
+          }
+        }
+
+        saveToHistory() {
+          // Remove any history beyond current index
+          this.history = this.history.slice(0, this.historyIndex + 1);
+
+          // Add current state
+          this.history.push(JSON.parse(JSON.stringify(this.shapes)));
+          this.historyIndex++;
+
+          // Limit history size
+          if (this.history.length > this.maxHistory) {
+            this.history.shift();
+            this.historyIndex--;
+          }
+        }
+
+        async exportSVG() {
+          const svgClone = this.svg.cloneNode(true);
+
+          // Remove the checkerboard background
+          const checkerboard = svgClone.querySelector(
+            'rect[fill="url(#checkerboard)"]'
+          );
+          if (checkerboard) checkerboard.remove();
+
+          // Create SVG string
+          const svgString = new XMLSerializer().serializeToString(svgClone);
+
+          // Create download link
+          const blob = new Blob([svgString], { type: "image/svg+xml" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "colored-shapes.svg";
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+
+        async copySVGToClipboard() {
+          try {
+            const svgElement = this.svg.cloneNode(true);
+            svgElement.removeAttribute("style");
+            const svgString = new XMLSerializer().serializeToString(svgElement);
+            await navigator.clipboard.writeText(svgString);
+
+            // Show feedback
+            const button = document.getElementById("copySVG");
+            const originalText = button.textContent;
+            button.textContent = "Copied!";
+            button.style.backgroundColor = "#4CAF50";
+            setTimeout(() => {
+              button.textContent = originalText;
+              button.style.backgroundColor = "";
+            }, 2000);
+          } catch (err) {
+            console.error("Failed to copy SVG: ", err);
+            alert("Failed to copy SVG to clipboard");
+          }
+        }
+
+        generateFermatSpiral() {
+          const nCircles =
+            parseInt(document.getElementById("fermatCount").value) || 50;
+          const baseSize =
+            parseInt(document.getElementById("baseSize").value) || 20;
+          const svgW =
+            parseFloat(document.getElementById("svgWidth").value) || 600;
+          const svgH =
+            parseFloat(document.getElementById("svgHeight").value) || 400;
+          const svgX = parseFloat(document.getElementById("svgX").value) || 0;
+          const svgY = parseFloat(document.getElementById("svgY").value) || 0;
+          // Center of spiral in global (image) coordinates
+          const centerX = svgX + svgW / 2;
+          const centerY = svgY + svgH / 2;
+          const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ≈2.39996323
+          const scale = (Math.min(svgW, svgH) * 0.4) / Math.sqrt(nCircles); // fit spiral
+
+          for (let n = 0; n < nCircles; n++) {
+            const theta = n * goldenAngle;
+            const r = scale * Math.sqrt(n);
+            const x = centerX + r * Math.cos(theta) - svgX; // local SVG coordinates
+            const y = centerY + r * Math.sin(theta) - svgY;
+            this.createShape(x, y);
+          }
+          this.showToast(`Placed ${nCircles} circles on Fermat spiral.`);
+        }
+
+        updateUI() {
+          // Update undo/redo buttons
+          const undoBtn = document.getElementById("undoBtn");
+          const redoBtn = document.getElementById("redoBtn");
+
+          if (undoBtn) {
+            undoBtn.disabled = this.historyIndex <= 0;
+          }
+          if (redoBtn) {
+            redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+          }
+
+          // Update mode buttons
+          const colorModeBtn = document.getElementById("colorMode");
+          const brightnessModeBtn = document.getElementById("brightnessMode");
+
+          if (colorModeBtn && brightnessModeBtn) {
+            if (this.currentMode === "color") {
+              colorModeBtn.classList.add("active");
+              brightnessModeBtn.classList.remove("active");
+            } else {
+              colorModeBtn.classList.remove("active");
+              brightnessModeBtn.classList.add("active");
+            }
+          }
+
+          // Update object count in toolbar
+          const objectCount = document.getElementById("objectCount");
+          if (objectCount) {
+            objectCount.textContent = this.shapes.length;
+          }
+        }
+
+        saveState() {
+          // Remove future history if we're not at the end
+          if (this.historyIndex < this.history.length - 1) {
+            this.history = this.history.slice(0, this.historyIndex + 1);
+          }
+
+          // Save current state
+          const state = JSON.stringify(
+            this.shapes.map((shape) => ({
+              ...shape,
+              element: shape.element.outerHTML,
+            }))
+          );
+
+          this.history.push(state);
+          this.historyIndex++;
+
+          // Limit history size
+          if (this.history.length > this.maxHistory) {
+            this.history.shift();
+            this.historyIndex--;
+          }
+
+          this.updateUI();
+        }
+
+        undo() {
+          if (this.historyIndex > 0) {
+            this.historyIndex--;
+            this.restoreState();
+          }
+        }
+
+        redo() {
+          if (this.historyIndex < this.history.length - 1) {
+            this.historyIndex++;
+            this.restoreState();
+          }
+        }
+
+        restoreState() {
+          if (
+            this.historyIndex >= 0 &&
+            this.historyIndex < this.history.length
+          ) {
+            const state = JSON.parse(this.history[this.historyIndex]);
+
+            // Clear current shapes
+            this.shapes.forEach((shape) => {
+              if (shape.element && shape.element.parentNode) {
+                shape.element.parentNode.removeChild(shape.element);
+              }
+            });
+            this.shapes = [];
+            this.selectedShape = null;
+
+            // Restore shapes from state
+            state.forEach((shapeData) => {
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(
+                shapeData.element,
+                "image/svg+xml"
+              );
+              const element = doc.documentElement;
+
+              // Convert to proper SVG element
+              const svgElement = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                element.tagName
+              );
+              Array.from(element.attributes).forEach((attr) => {
+                svgElement.setAttribute(attr.name, attr.value);
+              });
+
+              const shape = {
+                type: shapeData.type,
+                x: shapeData.x,
+                y: shapeData.y,
+                width: shapeData.width,
+                height: shapeData.height,
+                color: shapeData.color,
+                element: svgElement,
+              };
+
+              this.svg.appendChild(svgElement);
+              this.shapes.push(shape);
+              this.setupShapeInteraction(shape);
+            });
+
+            this.updateUI();
+          }
+        }
+
+        clearAll() {
+          this.saveState();
+          this.shapes.forEach((shape) => {
+            if (shape.element && shape.element.parentNode) {
+              shape.element.parentNode.removeChild(shape.element);
+            }
+          });
+          this.shapes = [];
+          this.selectedShape = null;
+          this.updateUI();
+        }
+      }
+
+      // Initialize the SVG Editor when the page loads
+      document.addEventListener("DOMContentLoaded", () => {
+        const editor = new SVGImageEditor();
+
+        // Add some initial styling for active buttons
+        const style = document.createElement("style");
+        style.textContent = `
+        .active {
+            background-color: #007acc !important;
+            color: white !important;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .canvas-wrapper {
+            position: relative !important;
+        }
+        
+        .background-image {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            pointer-events: none !important;
+            z-index: 1 !important;
+        }
+        
+        .svg-layer {
+            position: relative !important;
+            z-index: 2 !important;
+        }
+    `;
+        document.head.appendChild(style);
+      });
+    </script>
+  </body>
+</html>
