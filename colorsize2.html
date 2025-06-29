@@ -430,6 +430,17 @@
             >
               Load Settings
             </button>
+            <button
+              onclick="exportSVG()"
+              style="
+                padding: 3px 14px;
+                font-size: 12px;
+                background: #f5a623;
+                color: #222;
+              "
+            >
+              Export SVG
+            </button>
           </div>
         </div>
       </fieldset>
@@ -565,7 +576,7 @@
       </fieldset>
 
       <fieldset class="collapsible">
-        <legend>Height (px)</legend>
+        <legend>Height</legend>
         <div class="fieldset-content">
           <div class="prop-control-group">
             <div class="input-pair">
@@ -830,9 +841,9 @@
 
         allFieldsets.forEach((fieldset) => {
           const legend = fieldset.querySelector("legend").textContent;
-          if (legend === "Line Width (px)") lineWidthFieldset = fieldset;
-          if (legend === "Object Width (px)") objectWidthFieldset = fieldset;
-          if (legend === "Height (px)") heightFieldset = fieldset;
+          if (legend === "Line Width") lineWidthFieldset = fieldset;
+          if (legend === "Object Width") objectWidthFieldset = fieldset;
+          if (legend === "Height") heightFieldset = fieldset;
         });
 
         if (mode === "line") {
@@ -1497,6 +1508,8 @@
 
         // Load default settings and generate initial visualization
         loadDefaultSettings();
+        // Ensure correct fieldsets are shown on load
+        toggleRenderMode();
       });
 
       // --- BEZIER CURVE FUNCTIONS ---
@@ -1628,6 +1641,41 @@
         }
 
         return pathData;
+      }
+
+      function exportSVG() {
+        const svg = document.querySelector("#visualizer svg");
+        if (!svg) {
+          alert("No SVG to export. Please generate a visualization first.");
+          return;
+        }
+        // Clone and clean up SVG
+        const clone = svg.cloneNode(true);
+        clone.removeAttribute("style");
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        // Serialize SVG
+        const serializer = new XMLSerializer();
+        let source = serializer.serializeToString(clone);
+        // Add XML declaration if missing
+        if (!source.startsWith("<?xml")) {
+          source = '<?xml version="1.0" standalone="no"?>\n' + source;
+        }
+        // Prompt for filename
+        let defaultName =
+          "harmonograph-" + new Date().toISOString().slice(0, 10) + ".svg";
+        let filename = prompt("Enter filename for SVG export:", defaultName);
+        if (!filename) return;
+        if (!filename.toLowerCase().endsWith(".svg")) filename += ".svg";
+        // Download
+        const blob = new Blob([source], { type: "image/svg+xml" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       }
     </script>
   </body>
