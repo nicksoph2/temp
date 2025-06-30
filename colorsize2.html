@@ -377,8 +377,7 @@
           Hide
         </button>
       </div>
-      <!-- <div>
-        <button onclick="generate()">Generate Visualization</button>
+      <div>
         <input
           type="file"
           id="fileInput"
@@ -386,7 +385,7 @@
           style="display: none"
           onchange="handleFileLoad(event)"
         />
-      </div> -->
+      </div>
       Palette Loader UI
       <div class="main-control-group">
         <label for="paletteFileInput">Load Palette:</label>
@@ -682,7 +681,7 @@
           Apply Palette
         </button>
       </div>
-      <!-- <button onclick="generate()">Generate Visualization</button> -->
+      <button onclick="generate()">Generate Visualization</button>
     </div>
 
     <div id="visualizer" class="visualizer"></div>
@@ -1272,6 +1271,8 @@
         document
           .querySelectorAll("fieldset.collapsible")
           .forEach((fieldset) => {
+            // Open all fieldsets by default
+            fieldset.classList.add("open");
             const legend = fieldset.querySelector("legend");
             if (legend) {
               legend.addEventListener("click", function () {
@@ -1546,15 +1547,218 @@
         });
 
       // --- COLOUR INDEX LOGIC (in generate) ---
-      // To loop through colors with the index logic described, update the color property application in generate() if needed.
+      // --- EXPORT FUNCTIONS ---
 
-      // Ensure collapsible fieldsets work and open all by default
-      window.addEventListener("DOMContentLoaded", function () {
+      function exportSVG() {
+        const svg = document.querySelector("#visualizer svg");
+        if (!svg) {
+          alert(
+            "No visualization to export. Please generate a visualization first."
+          );
+          return;
+        }
+
+        // Clone the SVG to avoid modifying the original
+        const svgClone = svg.cloneNode(true);
+
+        // Set proper dimensions and viewBox
+        const visualizer = document.getElementById("visualizer");
+        const width = visualizer.clientWidth || 800;
+        const height = visualizer.clientHeight || 600;
+
+        svgClone.setAttribute("width", width);
+        svgClone.setAttribute("height", height);
+        svgClone.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+        // Convert to string
+        const svgString = new XMLSerializer().serializeToString(svgClone);
+
+        // Create download link
+        const blob = new Blob([svgString], { type: "image/svg+xml" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `harmonograph-${
+          new Date().toISOString().split("T")[0]
+        }.svg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      // --- BEZIER CURVE FUNCTIONS ---
+
+      function calculateTangentVector(points, index, lookAhead = 2) {
+        // Calculate tangent by considering multiple points on each side
+        const point = points[index];
+        let tangentX = 0,
+          tangentY = 0;
+        let weightSum = 0;
+
+        // Look at points before and after, with decreasing weight for distant points
+        for (let offset = 1; offset <= lookAhead; offset++) {
+          const weight = 1.0 / offset; // Closer points have more influence
+
+          // Forward direction
+          if (index + offset < points.length) {
+            const forwardPoint = points[index + offset];
+            tangentX += weight * (forwardPoint.x - point.x);
+            tangentY += weight * (forwardPoint.y - point.y);
+            weightSum += weight;
+          }
+
+          // Backward direction
+          if (index - offset >= 0) {
+            const backwardPoint = points[index - offset];
+            tangentX += weight * (point.x - backwardPoint.x);
+            tangentY += weight * (point.y - backwardPoint.y);
+            weightSum += weight;
+          }
+        }
+
+        // Normalize the tangent
+        if (weightSum > 0) {
+          tangentX /= weightSum;
+          tangentY /= weightSum;
+        }
+
+        // Handle edge cases
+        if (index === 0 && points.length > 1) {
+          tangentX = points[1].x - points[0].x;
+          tangentY = points[1].y - points[0].y;
+        } else if (index === points.length - 1 && points.length > 1) {
+          tangentX = points[index].x - points[index - 1].x;
+          tangentY = points[index].y - points[index - 1].y;
+        }
+
+        return { x: tangentX, y: tangentY };
+      }
+
+      function calculateControlPoints(points, index, tangentStrength = 0.3) {
+        if (points.length < 2) return null;
+
+        const point = points[index];
+        const tangent = calculateTangentVector(points, index, 3); // Look 3 points ahead/behind
+
+        // Calculate control point distances based on neighboring point distances
+        let prevDistance = 0;
+        let nextDistance = 0;
+
+        if (index > 0) {
+          const prevPoint = points[index - 1];
+          prevDistance = Math.sqrt(
+            Math.pow(point.x - prevPoint.x, 2) +
+              Math.pow(point.y - prevPoint.y, 2)
+          );
+        }
+
+        if (index < points.length - 1) {
+          const nextPoint = points[index + 1];
+          nextDistance = Math.sqrt(
+            Math.pow(nextPoint.x - point.x, 2) +
+              Math.pow(nextPoint.y - point.y, 2)
+          );
+        }
+
+        // Use average distance if both exist, otherwise use the available one
+        const baseDistance =
+          (prevDistance + nextDistance) /
+          (prevDistance > 0 && nextDistance > 0 ? 2 : 1);
+        const controlDistance = baseDistance * tangentStrength;
+
+        // Normalize tangent vector
+        const tangentLength = Math.sqrt(
+          tangent.x * tangent.x + tangent.y * tangent.y
+        );
+        if (tangentLength === 0) return null;
+
+        const unitTangentX = tangent.x / tangentLength;
+        const unitTangentY = tangent.y / tangentLength;
+
+        // Create collinear control points on both sides of the point
+        const controlPoint1 = {
+          x: point.x - unitTangentX * controlDistance,
+          y: point.y - unitTangentY * controlDistance,
+        };
+
+        const controlPoint2 = {
+          x: point.x + unitTangentX * controlDistance,
+          y: point.y + unitTangentY * controlDistance,
+        };
+
+        return { cp1: controlPoint1, cp2: controlPoint2 };
+      }
+
+      function generateBezierPath(points) {
+        if (points.length < 2) return "";
+
+        let pathData = `M ${points[0].x} ${points[0].y}`;
+
+        for (let i = 0; i < points.length - 1; i++) {
+          const currentPoint = points[i];
+          const nextPoint = points[i + 1];
+
+          // Calculate control points for current and next points
+          const currentControls = calculateControlPoints(points, i);
+          const nextControls = calculateControlPoints(points, i + 1);
+
+          if (currentControls && nextControls) {
+            // Use the outgoing control point from current and incoming control point from next
+            const cp1 = currentControls.cp2; // Outgoing from current point
+            const cp2 = nextControls.cp1; // Incoming to next point
+
+            pathData += ` C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${nextPoint.x} ${nextPoint.y}`;
+          } else {
+            // Fallback to line if control points can't be calculated
+            pathData += ` L ${nextPoint.x} ${nextPoint.y}`;
+          }
+        }
+
+        return pathData;
+      }
+
+      // Load default settings from default.json
+      async function loadDefaultSettings() {
+        try {
+          const response = await fetch("default.json");
+          if (response.ok) {
+            const defaultSettings = await response.json();
+            applySettings(defaultSettings);
+            console.log("Default settings loaded successfully");
+          } else {
+            console.log("No default.json found, using built-in defaults");
+            // Add a basic pendulum if none exist
+            addPendulum();
+          }
+        } catch (error) {
+          console.log(
+            "Could not load default.json, using built-in defaults:",
+            error
+          );
+          // Add a basic pendulum if none exist
+          addPendulum();
+        }
+      }
+
+      // Initialize collapsible fieldsets when DOM is ready
+      document.addEventListener("DOMContentLoaded", function () {
         initializeCollapsibleFieldsets();
-        // Open all collapsible fieldsets by default
+        updateLoopLengthDisplays();
+
+        // Add event listeners to frequency inputs to update displays
+        document.querySelectorAll(".prop-frequency").forEach((input) => {
+          input.addEventListener("input", updateLoopLengthDisplays);
+        });
+
+        // Add event listener to point count to update displays
         document
-          .querySelectorAll("fieldset.collapsible")
-          .forEach((fs) => fs.classList.add("open"));
+          .getElementById("pointCount")
+          .addEventListener("input", updateLoopLengthDisplays);
+
+        // Load default settings and generate initial visualization
+        loadDefaultSettings();
       });
     </script>
   </body>
