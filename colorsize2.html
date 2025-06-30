@@ -342,10 +342,47 @@
         display: inline-block;
         width: auto;
       }
-      #paletteSelect,
-      #applyPaletteBtn {
+      #paletteSelect {
         display: none;
         width: auto;
+      }
+      #applyPaletteBtn {
+        display: none;
+        width: 50%; /* Half width of container */
+      }
+      #palettePreview {
+        display: none;
+        margin-top: 8px;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #f9f9f9;
+      }
+      #paletteColorBlocks {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 2px;
+      }
+      .palette-color-block {
+        width: 20px;
+        height: 20px;
+        border: 1px solid #ccc;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+
+      /* Nested fieldset styles for palette section */
+      fieldset.palette-section {
+        margin: 0 0 15px 0;
+        border-color: #bbb;
+        background-color: #f8f9fa;
+      }
+
+      fieldset.palette-section legend {
+        font-size: 12px;
+        color: #555;
+        background-color: #e9ecef;
       }
     </style>
   </head>
@@ -385,20 +422,6 @@
           style="display: none"
           onchange="handleFileLoad(event)"
         />
-      </div>
-      Palette Loader UI
-      <div class="main-control-group">
-        <label for="paletteFileInput">Load Palette:</label>
-        <input
-          type="file"
-          id="paletteFileInput"
-          accept=".json"
-          style="display: inline-block; width: auto"
-        />
-        <select id="paletteSelect" style="display: none; width: auto"></select>
-        <button id="applyPaletteBtn" style="display: none">
-          Apply Palette
-        </button>
       </div>
       <fieldset class="collapsible time-controls">
         <legend>Time & Render</legend>
@@ -500,6 +523,41 @@
       <fieldset class="collapsible">
         <legend>Color</legend>
         <div class="fieldset-content">
+          <!-- Palette Loader Section -->
+          <fieldset class="collapsible palette-section">
+            <legend>Palette Loader</legend>
+            <div class="fieldset-content">
+              <div class="main-control-group">
+                <label for="paletteFileInput">Load Palette:</label>
+                <input
+                  type="file"
+                  id="paletteFileInput"
+                  accept=".json"
+                  style="display: inline-block; width: auto"
+                />
+                <select
+                  id="paletteSelect"
+                  style="display: none; width: auto"
+                ></select>
+                <button id="applyPaletteBtn" style="display: none">
+                  Apply Palette
+                </button>
+                <div id="palettePreview">
+                  <div
+                    style="
+                      font-size: 11px;
+                      margin-bottom: 4px;
+                      font-weight: 600;
+                    "
+                  ></div>
+                  <!-- <div id="paletteColorBlocks"></div> -->
+                </div>
+              </div>
+              Selected Palette:
+              <div id="paletteColorBlocks"></div>
+            </div>
+          </fieldset>
+
           <div class="prop-control-group">
             <div class="input-pair">
               <label>Loops:</label>
@@ -512,8 +570,15 @@
               />
             </div>
             <div class="input-pair">
-              <label>Offset:</label>
-              <input type="number" class="prop-offset" value="0" />
+              <label>Offset %:</label>
+              <input
+                type="number"
+                class="prop-offset"
+                value="0"
+                min="0"
+                max="100"
+                step="1"
+              />
             </div>
             <div class="input-pair">
               <label>Loop Length:</label>
@@ -546,8 +611,15 @@
               />
             </div>
             <div class="input-pair">
-              <label>Offset:</label>
-              <input type="number" class="prop-offset" value="10" />
+              <label>Offset %:</label>
+              <input
+                type="number"
+                class="prop-offset"
+                value="10"
+                min="0"
+                max="100"
+                step="1"
+              />
             </div>
             <div class="input-pair">
               <label>Loop Length:</label>
@@ -580,8 +652,15 @@
               />
             </div>
             <div class="input-pair">
-              <label>Offset:</label>
-              <input type="number" class="prop-offset" value="10" />
+              <label>Offset %:</label>
+              <input
+                type="number"
+                class="prop-offset"
+                value="10"
+                min="0"
+                max="100"
+                step="1"
+              />
             </div>
             <div class="input-pair">
               <label>Loop Length:</label>
@@ -614,8 +693,15 @@
               />
             </div>
             <div class="input-pair">
-              <label>Offset:</label>
-              <input type="number" class="prop-offset" value="0" />
+              <label>Offset %:</label>
+              <input
+                type="number"
+                class="prop-offset"
+                value="0"
+                min="0"
+                max="100"
+                step="1"
+              />
             </div>
             <div class="input-pair">
               <label>Loop Length:</label>
@@ -648,8 +734,15 @@
               />
             </div>
             <div class="input-pair">
-              <label>Offset:</label>
-              <input type="number" class="prop-offset" value="0" />
+              <label>Offset %:</label>
+              <input
+                type="number"
+                class="prop-offset"
+                value="0"
+                min="0"
+                max="100"
+                step="1"
+              />
             </div>
             <div class="input-pair">
               <label>Loop Length:</label>
@@ -661,27 +754,11 @@
           </button>
           <div class="control-point-header">
             <span>Loop %</span>
-            <span>Transparency</span>
+            <span>Transparency %</span>
           </div>
           <div id="opacity-points" class="control-point-list"></div>
         </div>
       </fieldset>
-
-      <!-- Palette Loader UI -->
-      <div class="main-control-group">
-        <label for="paletteFileInput">Load Palette:</label>
-        <input
-          type="file"
-          id="paletteFileInput"
-          accept=".json"
-          style="display: inline-block; width: auto"
-        />
-        <select id="paletteSelect" style="display: none; width: auto"></select>
-        <button id="applyPaletteBtn" style="display: none">
-          Apply Palette
-        </button>
-      </div>
-      <button onclick="generate()">Generate Visualization</button>
     </div>
 
     <div id="visualizer" class="visualizer"></div>
@@ -1007,7 +1084,7 @@
           document.getElementById("timeStart").value
         );
         const timeEnd = parseFloat(document.getElementById("timeEnd").value);
-        const numPoints = parseInt(document.getElementById("pointCount").value);
+        let numPoints = parseInt(document.getElementById("pointCount").value);
 
         if (timeEnd <= timeStart) {
           document.getElementById("visualizer").innerHTML =
@@ -1018,6 +1095,20 @@
         if (numPoints < 2) {
           document.getElementById("visualizer").innerHTML =
             "<p>Points to Be Generated must be at least 2</p>";
+          return;
+        }
+
+        // Check if points exceed 50,000 limit
+        if (numPoints > 50000) {
+          document.getElementById("visualizer").innerHTML =
+            "<p style='color: #ff4d4d; font-weight: bold; padding: 20px; text-align: center;'>Point count limit exceeded! Maximum allowed is 50,000 points.<br>Setting point count to 50,000...</p>";
+          document.getElementById("pointCount").value = 50000;
+          numPoints = 50000;
+
+          // Continue with generation after a brief delay to show the message
+          setTimeout(() => {
+            generate();
+          }, 1500);
           return;
         }
 
@@ -1046,6 +1137,10 @@
           const loopLength = calculateLoopLength(frequency, numPoints);
 
           const offset = parseInt(fieldset.querySelector(".prop-offset").value);
+          // Convert offset percentage to actual point offset
+          const offsetPoints = Math.round(
+            (offset / 100) * (frequency === 1 ? numPoints : loopLength)
+          );
           const lerpFunc = propName === "color" ? lerpColor : lerp;
           const controlPoints = Array.from(
             fieldset.querySelectorAll(".control-point")
@@ -1087,7 +1182,7 @@
           }
 
           for (let i = 0; i < points.length; i++) {
-            let effectiveIndex = i - offset;
+            let effectiveIndex = i - offsetPoints;
 
             if (frequency === 1) {
               // For no-loop mode, use the actual index
@@ -1500,6 +1595,13 @@
                 loadedPalettes = json.Swatches;
                 const select = document.getElementById("paletteSelect");
                 select.innerHTML = "";
+
+                // Add a default "Select a palette" option
+                const defaultOpt = document.createElement("option");
+                defaultOpt.value = "";
+                defaultOpt.textContent = "Select a palette...";
+                select.appendChild(defaultOpt);
+
                 loadedPalettes.forEach((swatch, idx) => {
                   const opt = document.createElement("option");
                   opt.value = idx;
@@ -1509,6 +1611,9 @@
                 select.style.display = "inline-block";
                 document.getElementById("applyPaletteBtn").style.display =
                   "inline-block";
+
+                // Add event listener for palette selection preview
+                select.addEventListener("change", showPalettePreview);
               } else {
                 alert("Invalid palette file format");
               }
@@ -1518,6 +1623,31 @@
           };
           reader.readAsText(file);
         });
+
+      function showPalettePreview() {
+        const select = document.getElementById("paletteSelect");
+        const previewDiv = document.getElementById("palettePreview");
+        const colorBlocksDiv = document.getElementById("paletteColorBlocks");
+        const idx = select.value;
+
+        if (!idx || !loadedPalettes[idx]) {
+          previewDiv.style.display = "none";
+          return;
+        }
+
+        const colors = loadedPalettes[idx].colors;
+        colorBlocksDiv.innerHTML = "";
+
+        colors.forEach((color) => {
+          const block = document.createElement("div");
+          block.className = "palette-color-block";
+          block.style.backgroundColor = color;
+          block.title = color; // Show color value on hover
+          colorBlocksDiv.appendChild(block);
+        });
+
+        previewDiv.style.display = "block";
+      }
 
       document
         .getElementById("applyPaletteBtn")
@@ -1529,10 +1659,10 @@
           // Remove existing color control points
           const colorPoints = document.getElementById("color-points");
           colorPoints.innerHTML = "";
-          // Add new color control points, evenly spaced
+          // Add new color control points, evenly spaced for proper looping
           const numColors = colors.length;
           for (let i = 0; i < numColors; i++) {
-            const percent = Math.round((i / (numColors - 1)) * 100);
+            const percent = Math.round((i / numColors) * 100);
             addControlPoint("color", colors[i]);
             // Set the percentage value
             colorPoints.lastChild.querySelector(".cp-index").value = percent;
@@ -1544,6 +1674,11 @@
           if (colorFieldset && colorFieldset.querySelector(".prop-frequency")) {
             colorFieldset.querySelector(".prop-frequency").value = 1;
           }
+
+          // Auto-regenerate visualization after applying palette
+          setTimeout(() => {
+            generate();
+          }, 50); // Small delay to ensure DOM updates are complete
         });
 
       // --- COLOUR INDEX LOGIC (in generate) ---
@@ -1719,6 +1854,48 @@
         return pathData;
       }
 
+      // Load default swatches from swatches.json
+      async function loadDefaultSwatches() {
+        try {
+          const response = await fetch("swatches.json");
+          if (response.ok) {
+            const json = await response.json();
+            if (json.Swatches && Array.isArray(json.Swatches)) {
+              loadedPalettes = json.Swatches;
+              const select = document.getElementById("paletteSelect");
+              select.innerHTML = "";
+
+              // Add a default "Select a palette" option
+              const defaultOpt = document.createElement("option");
+              defaultOpt.value = "";
+              defaultOpt.textContent = "Select a palette...";
+              select.appendChild(defaultOpt);
+
+              loadedPalettes.forEach((swatch, idx) => {
+                const opt = document.createElement("option");
+                opt.value = idx;
+                opt.textContent = swatch.name;
+                select.appendChild(opt);
+              });
+              select.style.display = "inline-block";
+              document.getElementById("applyPaletteBtn").style.display =
+                "inline-block";
+
+              // Add event listener for palette selection preview
+              select.addEventListener("change", showPalettePreview);
+
+              console.log("Default swatches loaded successfully");
+            } else {
+              console.log("Invalid swatches file format");
+            }
+          } else {
+            console.log("No swatches.json found");
+          }
+        } catch (error) {
+          console.log("Could not load swatches.json:", error);
+        }
+      }
+
       // Load default settings from default.json
       async function loadDefaultSettings() {
         try {
@@ -1757,7 +1934,8 @@
           .getElementById("pointCount")
           .addEventListener("input", updateLoopLengthDisplays);
 
-        // Load default settings and generate initial visualization
+        // Load default settings and swatches, then generate initial visualization
+        loadDefaultSwatches();
         loadDefaultSettings();
       });
     </script>

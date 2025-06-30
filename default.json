@@ -98,15 +98,15 @@
       "controlPoints": [
         {
           "percentage": "0",
-          "value": "1"
+          "value": "0"
         },
         {
           "percentage": "60",
-          "value": ".5"
+          "value": "50"
         },
         {
-          "percentage": "120",
-          "value": ".75"
+          "percentage": "75",
+          "value": "75"
         }
       ]
     }
