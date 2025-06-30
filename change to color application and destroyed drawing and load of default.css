@@ -387,7 +387,7 @@
           onchange="handleFileLoad(event)"
         />
       </div> -->
-      Palette Loader UI
+      <!-- Palette Loader UI
       <div class="main-control-group">
         <label for="paletteFileInput">Load Palette:</label>
         <input
@@ -401,6 +401,12 @@
           Apply Palette
         </button>
       </div>
+      ADDITIONAL PALETTE UI ELEMENTS
+      <div
+        id="palettePreview"
+        style="display: flex; gap: 4px; margin: 6px 0 10px 0"
+      ></div>
+      -->
       <fieldset class="collapsible time-controls">
         <legend>Time & Render</legend>
         <div class="fieldset-content">
@@ -529,6 +535,28 @@
             <span>Color</span>
           </div>
           <div id="color-points" class="control-point-list"></div>
+          <!-- Palette Loader UI -->
+          <div class="main-control-group">
+            <label for="paletteFileInput">Load Palette:</label>
+            <input
+              type="file"
+              id="paletteFileInput"
+              accept=".json"
+              style="display: inline-block; width: auto"
+            />
+            <select
+              id="paletteSelect"
+              style="display: none; width: auto"
+            ></select>
+            <button id="applyPaletteBtn" style="display: none">
+              Apply Palette
+            </button>
+          </div>
+          <!-- ADDITIONAL PALETTE UI ELEMENTS -->
+          <div
+            id="palettePreview"
+            style="display: flex; gap: 4px; margin: 6px 0 10px 0"
+          ></div>
         </div>
       </fieldset>
 
@@ -1528,13 +1556,22 @@
           // Remove existing color control points
           const colorPoints = document.getElementById("color-points");
           colorPoints.innerHTML = "";
-          // Add new color control points, evenly spaced
+          // Calculate division and set percentages as per rule
           const numColors = colors.length;
+          const division = 100 / (numColors + 1);
           for (let i = 0; i < numColors; i++) {
-            const percent = Math.round((i / (numColors - 1)) * 100);
+            let percent = Math.round(i * division);
+            // For the last color, set to 100 - division
+            if (i === numColors - 1) {
+              percent = Math.round(100 - division);
+            }
             addControlPoint("color", colors[i]);
-            // Set the percentage value
-            colorPoints.lastChild.querySelector(".cp-index").value = percent;
+            // Set the percentage value and ENABLE input for user editing
+            const cpIndexInput = colorPoints.lastChild.querySelector(".cp-index");
+            cpIndexInput.value = percent;
+            cpIndexInput.disabled = false; // Allow user to edit after applying
+            // Also ENABLE color removal for palette-applied points
+            colorPoints.lastChild.querySelector(".remove-btn").disabled = false;
           }
           // Set frequency to 1
           const colorFieldset = document
@@ -1543,6 +1580,40 @@
           if (colorFieldset && colorFieldset.querySelector(".prop-frequency")) {
             colorFieldset.querySelector(".prop-frequency").value = 1;
           }
+        });
+
+      // --- COLOR PALETTE PREVIEW LOGIC ---
+      const paletteSelect = document.getElementById("paletteSelect");
+      const palettePreview = document.getElementById("palettePreview");
+
+      // Update the preview when the palette selection changes
+      paletteSelect.addEventListener("change", function () {
+        updatePalettePreview();
+      });
+
+      function updatePalettePreview() {
+        const idx = paletteSelect.value;
+        palettePreview.innerHTML = "";
+        if (!loadedPalettes[idx]) return;
+        const colors = loadedPalettes[idx].colors;
+        colors.forEach((color) => {
+          const swatch = document.createElement("div");
+          swatch.style.width = "22px";
+          swatch.style.height = "22px";
+          swatch.style.border = "1px solid #ccc";
+          swatch.style.borderRadius = "4px";
+          swatch.style.background = color;
+          palettePreview.appendChild(swatch);
+        });
+      }
+
+      // Also update preview after loading a new palette file
+      const origPaletteFileInputHandler =
+        document.getElementById("paletteFileInput").onchange;
+      document
+        .getElementById("paletteFileInput")
+        .addEventListener("change", function () {
+          setTimeout(updatePalettePreview, 100);
         });
 
       // --- COLOUR INDEX LOGIC (in generate) ---
@@ -1555,6 +1626,15 @@
         document
           .querySelectorAll("fieldset.collapsible")
           .forEach((fs) => fs.classList.add("open"));
+        // Set default pendulum and color control point if none exist
+        if (document.querySelectorAll(".pendulum-control").length === 0) {
+          addPendulum();
+        }
+        if (document.getElementById("color-points").children.length === 0) {
+          addControlPoint("color", "#ff0000");
+        }
+        // Generate visualization on load
+        generate();
       });
     </script>
   </body>
